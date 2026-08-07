@@ -13,8 +13,8 @@ export default function ShareModal({ isOpen, onClose, url, title }: ShareModalPr
   const [hasNativeShare, setHasNativeShare] = useState(false)
 
   useEffect(() => {
-    // Verificamos si el navegador soporta la función nativa de compartir (común en celulares)
-    if (navigator.share) {
+    // Verificamos de forma segura para TypeScript si el navegador soporta la función nativa de compartir
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       setHasNativeShare(true)
     }
   }, [])
