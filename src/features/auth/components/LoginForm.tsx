@@ -1,20 +1,38 @@
 'use client'
 
 import React, { useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    // Lógica de autenticación con Supabase Auth en el siguiente paso
-    setTimeout(() => {
+    setErrorMsg(null)
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) throw error
+
+      if (data.session) {
+        router.push('/marketplace')
+        router.refresh()
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Ocurrió un error al iniciar sesión')
+    } finally {
       setLoading(false)
-      alert('Inicio de sesión simulado correctamente')
-    }, 1000)
+    }
   }
 
   return (
@@ -23,6 +41,12 @@ export const LoginForm: React.FC = () => {
         <h2 className="text-2xl font-extrabold text-gray-900">Bienvenido a Credi Marketplace</h2>
         <p className="text-sm text-gray-500 mt-2">Inicia sesión para gestionar tus compras o tienda</p>
       </div>
+
+      {errorMsg && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm">
+          {errorMsg}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
