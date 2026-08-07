@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 
 interface Publication {
   id: string
@@ -22,14 +23,12 @@ export default function MagazinesPage() {
 
   const fetchPublications = async () => {
     try {
-      // Simulamos o consultamos publicaciones científicas/libros
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('is_active', true)
 
       if (error) throw error
-      // Filtramos o mapeamos para publicaciones académicas
       setPublications(data || [])
     } catch (error) {
       console.error('Error al cargar revistas y libros:', error)
@@ -44,8 +43,18 @@ export default function MagazinesPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-2 text-3xl font-bold text-gray-800">Revistas Científicas, Libros y Descargas</h1>
-      <p className="mb-6 text-gray-600">Publicaciones académicas nacionales e internacionales. Comunícate directo con el proveedor para descargas y gestión de comisiones.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Revistas Científicas, Libros y Descargas</h1>
+          <p className="text-gray-600 mt-1">Publicaciones académicas nacionales e internacionales. Comunícate directo con el proveedor para descargas y gestión de comisiones.</p>
+        </div>
+        <Link
+          href="/products/create"
+          className="rounded bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition shrink-0"
+        >
+          + Publicar Revista / Libro
+        </Link>
+      </div>
 
       {publications.length === 0 ? (
         <p className="text-gray-500">No hay revistas o libros disponibles en este momento.</p>
