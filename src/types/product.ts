@@ -13,6 +13,7 @@ export interface Category {
   name: string
   slug: string
   parent_id?: string
+  children?: Category[] // Añadido para soportar subcategorías en árbol
 }
 
 export interface Product {
