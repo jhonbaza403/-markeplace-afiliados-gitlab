@@ -1,10 +1,21 @@
-export type UserRole = 'customer' | 'vendor' | 'admin'
+export type UserRole = 'customer' | 'vendor' | 'professional' | 'company' | 'admin'
 
-export interface Profile {
+export interface UserProfile {
   id: string
-  full_name: string
   email: string
+  fullName: string
   role: UserRole
-  avatar_url?: string
-  created_at: string
+  avatarUrl?: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface StoreProfile {
+  id: string
+  vendorId: string
+  storeName: string
+  slug: string
+  description?: string
+  isVerified: boolean
+  createdAt: string
 }
