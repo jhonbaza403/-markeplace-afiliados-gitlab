@@ -1,20 +1,20 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { AuthProvider } from '@/context/AuthContext'
-import Navbar from '@/components/Navbar'
+import type { Metadata } from "metadata";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
+import Navbar from "@/components/Navbar";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Marketplace Multi-vendedor',
-  description: 'Plataforma de comercio electrónico con pasarelas de pago y afiliados',
-}
+  title: "Marketplace Afiliados",
+  description: "Plataforma multi-vendedor y sistema de afiliados",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="es">
@@ -25,5 +25,5 @@ export default function RootLayout({
         </AuthProvider>
       </body>
     </html>
-  )
+  );
 }
