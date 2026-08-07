@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 
 interface Job {
   id: string
@@ -40,8 +41,18 @@ export default function JobsPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-2 text-3xl font-bold text-gray-800">Bolsa de Empleo y Oportunidades</h1>
-      <p className="mb-6 text-gray-600">Encuentra tu próximo reto profesional o postúlate a las mejores vacantes de empresas y profesionales.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Bolsa de Empleo y Oportunidades</h1>
+          <p className="text-gray-600 mt-1">Encuentra tu próximo reto profesional o postúlate a las mejores vacantes de empresas y profesionales.</p>
+        </div>
+        <Link
+          href="/dashboard/seller"
+          className="rounded bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-purple-700 transition shrink-0"
+        >
+          + Publicar Vacante
+        </Link>
+      </div>
 
       {jobs.length === 0 ? (
         <p className="text-gray-500">No hay ofertas de empleo publicadas en este momento.</p>
@@ -60,9 +71,12 @@ export default function JobsPage() {
 
               <div className="mt-6 flex items-center justify-between border-t pt-4">
                 <span className="text-lg font-bold text-green-600">{job.salary || 'A convenir'}</span>
-                <button className="rounded bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 transition">
+                <a
+                  href={`mailto:rrhh@marketplace.com?subject=Postulación para la vacante - ${job.title}`}
+                  className="rounded bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 transition"
+                >
                   Postularme
-                </button>
+                </a>
               </div>
             </div>
           ))}
