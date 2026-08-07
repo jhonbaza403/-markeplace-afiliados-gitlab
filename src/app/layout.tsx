@@ -1,31 +1,29 @@
-'tsx'
-import type { Metadata } from 'next';
-import './globals.css';
-import { LanguageProvider } from '@/context/LanguageContext';
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { AuthProvider } from '@/context/AuthContext'
+import Navbar from '@/components/Navbar'
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Global Market Express - El Marketplace Global',
-  description: 'Acceso directo y seguro a los gigantes del comercio electrónico mundial.',
-};
+  title: 'Marketplace Multi-vendedor',
+  description: 'Plataforma de comercio electrónico con pasarelas de pago y afiliados',
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
-    <html lang="es" className="scroll-smooth">
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-        />
-      </head>
-      <body className="bg-slate-50 text-slate-800 font-sans antialiased">
-        <LanguageProvider>
-          {children}
-        </LanguageProvider>
+    <html lang="es">
+      <body className={inter.className}>
+        <AuthProvider>
+          <Navbar />
+          <main>{children}</main>
+        </AuthProvider>
       </body>
     </html>
-  );
+  )
 }
