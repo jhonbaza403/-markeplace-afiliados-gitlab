@@ -4,7 +4,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Faltan las variables de entorno de Supabase en tu archivo .env.local')
+  console.warn('Faltan las credenciales de Supabase en las variables de entorno.')
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
