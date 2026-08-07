@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface RatingModalProps {
@@ -17,14 +17,33 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  // Resetea los estados si el modal se cierra inesperadamente
+  useEffect(() => {
+    if (!isOpen) {
+      setLoading(false)
+      setSubmitted(false)
+      setComment('')
+      setIsScamReport(false)
+      setRating(5)
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // 1. Validación de seguridad: Evitar comentarios vacíos o de puros espacios
+    const trimmedComment = comment.trim()
+    if (!trimmedComment) {
+      alert('Por favor, ingresa un comentario válido antes de enviar.')
+      return
+    }
+
     setLoading(true)
 
     try {
-      // 1. Obtener el usuario autenticado actual (quien califica)
+      // 2. Obtener el usuario autenticado actual (quien califica)
       const { data: { user }, error: authError } = await supabase.auth.getUser()
 
       if (authError || !user) {
@@ -33,18 +52,27 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
         return
       }
 
-      // 2. Insertar la calificación en la base de datos de Supabase
+      // 3. Prevención de errores lógicos: Evitar que el usuario se califique a sí mismo
+      if (user.id === targetUserId) {
+        alert('No puedes calificarte a ti mismo.')
+        setLoading(false)
+        return
+      }
+
+      // 4. Insertar la calificación en la base de datos de Supabase
       const { error: insertError } = await supabase.from('ratings').insert({
         reviewer_id: user.id,
         target_user_id: targetUserId,
         rating: rating,
-        comment: comment,
+        comment: trimmedComment, // Enviamos el comentario limpio
         is_scam_report: isScamReport
       })
 
       if (insertError) throw insertError
 
       setSubmitted(true)
+      
+      // 5. Cerrar de forma segura con un temporizador
       setTimeout(() => {
         setSubmitted(false)
         setComment('')
@@ -54,7 +82,7 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
         onClose()
       }, 2000)
 
-    } catch (err) {
+    } catch (err: unknown) { // "unknown" evita errores de tipado estricto en TypeScript
       console.error('Error al guardar la calificación:', err)
       alert('Hubo un error al registrar la calificación. Por favor intenta de nuevo.')
       setLoading(false)
@@ -66,6 +94,7 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl relative">
         <button 
           onClick={onClose}
+          aria-label="Cerrar modal"
           className="absolute right-4 top-4 text-gray-400 hover:text-gray-700 transition"
         >
           ✕
@@ -119,7 +148,7 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Ej. Excelente comprador, pago puntual / No respondió a los mensajes..."
-                className="w-full rounded-lg border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 required
               />
             </div>
