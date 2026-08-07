@@ -1,13 +1,20 @@
-# Guía de Despliegue (Deployment)
+# Guía de Despliegue (Deployment) - Cloudflare Pages
 
-El despliegue recomendado para esta aplicación es **Vercel** debido a su integración nativa con Next.js y variables de entorno seguras.
+Esta guía detalla el proceso para desplegar la aplicación full-stack en **Cloudflare Pages**, conectada a **Supabase** para la base de datos y autenticación.
 
-## Pasos para Desplegar:
-1. Conecta tu repositorio de GitLab a Vercel.
-2. Configura las siguientes variables de entorno en el panel de Vercel:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `DATABASE_URL` (Conexión directa a PostgreSQL / Supabase)
-3. Asegúrate de que el comando de compilación incluya la generación del cliente Prisma:
-   ```json
-   "build": "prisma generate && next build"
+---
+
+## 1. Requisitos Previos
+- Una cuenta activa en [Cloudflare Dashboard](https://dash.cloudflare.com/).
+- El repositorio de GitLab conectado a Cloudflare Pages.
+- Un proyecto configurado en [Supabase](https://supabase.com/) con sus respectivas credenciales.
+
+---
+
+## 2. Variables de Entorno en Cloudflare Pages
+En el panel de tu proyecto en Cloudflare Pages, dirígete a **Settings > Environment variables** (tanto para producción como para preview) y añade las credenciales necesarias:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=[https://tu-proyecto.supabase.co](https://tu-proyecto.supabase.co)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-supabase-anon-key
+DATABASE_URL=postgresql://postgres:[TU-PASSWORD]@db.[TU-PROYECTO].supabase.co:5432/postgres
