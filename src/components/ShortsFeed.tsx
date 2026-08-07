@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import ShareModal from './ShareModal'
 
 interface ShortVideo {
   id: string
@@ -31,8 +32,11 @@ export default function ShortsFeed() {
     }
   ])
 
-  // Estado para manejar los "Me gusta" localmente
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set())
+  
+  // 1. Estados para controlar nuestra nueva ventana de compartir
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [currentShare, setCurrentShare] = useState({ title: '', url: '' })
 
   const handleLike = (id: string) => {
     setLikedVideos(prev => {
@@ -46,17 +50,17 @@ export default function ShortsFeed() {
     })
   }
 
-  const handleShare = async (title: string) => {
-    try {
-      await navigator.clipboard.writeText(`¡Mira este video en Markeplace Afiliados!: ${title}`)
-      alert('¡Enlace de afiliado copiado al portapapeles!')
-    } catch (err) {
-      console.error('Error al copiar', err)
-    }
+  // 2. Nueva función que prepara el enlace de afiliado y abre el modal
+  const handleShareClick = (title: string, videoId: string) => {
+    // Aquí simulamos cómo se vería el enlace con el código de afiliado
+    // En producción se usaría el dominio real (ej. https://tudominio.com)
+    const shareUrl = `https://markeplace.com/video/${videoId}?ref=MI_CODIGO_AFILIADO`
+    setCurrentShare({ title, url: shareUrl })
+    setIsShareModalOpen(true)
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-8">
+    <div className="mx-auto max-w-md px-4 py-8 relative">
       <h2 className="mb-6 text-2xl font-bold text-gray-800 text-center">Publicidad y Shorts</h2>
       
       <div className="space-y-8">
@@ -101,8 +105,9 @@ export default function ShortsFeed() {
                   <span className="text-xs font-bold mt-1">{video.likes + (isLiked ? 1 : 0)}</span>
                 </button>
                 
+                {/* 3. El botón ahora llama a la función handleShareClick */}
                 <button 
-                  onClick={() => handleShare(video.title)} 
+                  onClick={() => handleShareClick(video.title, video.id)} 
                   className="flex flex-col items-center transition hover:scale-110"
                 >
                   <div className="p-3 rounded-full bg-black/40 backdrop-blur-sm text-white">
@@ -117,6 +122,14 @@ export default function ShortsFeed() {
           )
         })}
       </div>
+
+      {/* 4. Renderizamos nuestro componente ShareModal */}
+      <ShareModal 
+        isOpen={isShareModalOpen} 
+        onClose={() => setIsShareModalOpen(false)} 
+        url={currentShare.url} 
+        title={currentShare.title} 
+      />
     </div>
   )
 }
