@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 interface RatingModalProps {
   isOpen: boolean
@@ -9,25 +10,55 @@ interface RatingModalProps {
   role: 'cliente' | 'vendedor'
 }
 
-export default function RatingModal({ isOpen, onClose, targetUserName, role }: RatingModalProps) {
+export default function RatingModal({ isOpen, onClose, targetUserName, targetUserId, role }: RatingModalProps) {
   const [rating, setRating] = useState<number>(5)
   const [comment, setComment] = useState('')
   const [isScamReport, setIsScamReport] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   if (!isOpen) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // Aquí se enviaría la calificación a Supabase
-    console.log('Calificación enviada:', { targetUserName, rating, comment, isScamReport })
-    
-    setSubmitted(true)
-    setTimeout(() => {
-      setSubmitted(false)
-      onClose()
-    }, 2000)
+    setLoading(true)
+
+    try {
+      // 1. Obtener el usuario autenticado actual (quien califica)
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        alert('Debes iniciar sesión para poder calificar.')
+        setLoading(false)
+        return
+      }
+
+      // 2. Insertar la calificación en la base de datos de Supabase
+      const { error: insertError } = await supabase.from('ratings').insert({
+        reviewer_id: user.id,
+        target_user_id: targetUserId,
+        rating: rating,
+        comment: comment,
+        is_scam_report: isScamReport
+      })
+
+      if (insertError) throw insertError
+
+      setSubmitted(true)
+      setTimeout(() => {
+        setSubmitted(false)
+        setComment('')
+        setRating(5)
+        setIsScamReport(false)
+        setLoading(false)
+        onClose()
+      }, 2000)
+
+    } catch (err) {
+      console.error('Error al guardar la calificación:', err)
+      alert('Hubo un error al registrar la calificación. Por favor intenta de nuevo.')
+      setLoading(false)
+    }
   }
 
   return (
@@ -115,13 +146,16 @@ export default function RatingModal({ isOpen, onClose, targetUserName, role }: R
 
             <button
               type="submit"
+              disabled={loading}
               className={`w-full py-3 rounded-xl font-bold text-white transition ${
+                loading ? 'opacity-50 cursor-not-allowed' : ''
+              } ${
                 isScamReport 
                   ? 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200' 
                   : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200'
               }`}
             >
-              {isScamReport ? 'Enviar Reporte de Seguridad' : 'Guardar Calificación'}
+              {loading ? 'Guardando...' : (isScamReport ? 'Enviar Reporte de Seguridad' : 'Guardar Calificación')}
             </button>
           </form>
         )}
