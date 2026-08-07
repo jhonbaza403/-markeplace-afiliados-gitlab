@@ -1,3 +1,7 @@
+"use client";
+
+import { useLanguage } from '@/context/LanguageContext';
+
 export interface AffiliateProduct {
   id: string;
   name: string;
@@ -136,3 +140,46 @@ export const affiliateProducts: AffiliateProduct[] = [
     }
   }
 ];
+
+export default function ProductGrid() {
+  const { lang, t } = useLanguage();
+
+  return (
+    <section id="productos" className="max-w-7xl mx-auto px-4 py-16">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl font-bold text-slate-800 mb-3">
+          {lang === 'es' ? 'Top Ofertas de Nuestros Socios' : lang === 'en' ? 'Top Partner Deals' : lang === 'pt' ? 'Melhores Ofertas de Parceiros' : 'Meilleures Offres Partenaires'}
+        </h2>
+        <p className="text-slate-500 text-sm max-w-2xl mx-auto">
+          {lang === 'es' ? 'Encuentra los mejores productos a nivel global con garantía y seguridad de compra.' : 'Find the best global products with purchase guarantee and security.'}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {affiliateProducts.map((product) => (
+          <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+            <div>
+              <div className="flex justify-between items-start mb-5">
+                <span className={`text-[10px] font-bold text-white uppercase tracking-wider px-3 py-1.5 rounded-full ${product.badgeColor}`}>
+                  {product.badge}
+                </span>
+                <i className={`fa-brands ${product.icon} text-2xl text-slate-300 group-hover:text-emerald-500 transition-colors`}></i>
+              </div>
+              <h3 className="text-[11px] font-bold text-emerald-600 mb-1 uppercase tracking-widest">{product.category[lang]}</h3>
+              <h4 className="text-lg font-bold text-slate-800 mb-2 leading-tight">{product.title}</h4>
+              <p className="text-sm text-slate-500 mb-6 line-clamp-3">{product.description[lang]}</p>
+            </div>
+            <a
+              href={product.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full text-center bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-xl transition shadow-md"
+            >
+              {product.buttonText[lang]}
+            </a>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
