@@ -1,31 +1,26 @@
-# 🌍 Global Market Express
+🌍 Global Market Express
 
-> El marketplace y agregador de ofertas global definitivo. Conecta de forma directa, segura y optimizada con los gigantes del comercio electrónico internacional (Amazon, Shein, AliExpress, Alibaba).
+El marketplace y agregador de ofertas global definitivo. Conecta de forma directa, segura y optimizada con los gigantes del comercio electrónico internacional (Amazon, Shein, AliExpress, Alibaba).
 
----
 
-## 🚀 Características Principales
+🚀 Características Principales
 
-* **Multi-idioma Reactivo:** Soporte integrado en tiempo real para Español, Inglés, Portugués y Francés.
-* **Buscador Dinámico de Productos:** Filtrado instantáneo en el catálogo sin recargar la página.
-* **Arquitectura Escalable (Next.js):** Diseñado con componentes modulares y optimizado para rendimiento web superior.
-* **Enlaces de Afiliados Verificados:** Integración segura con las plataformas globales más grandes del mundo.
-* **Despliegue Independiente de Vercel:** Totalmente preparado para compilar y ejecutar en servidores propios, VPS con Docker, PM2, Railway o Render.
+Multi-idioma Reactivo: Soporte integrado en tiempo real para Español, Inglés, Portugués y Francés.
+Buscador Dinámico de Productos: Filtrado instantáneo en el catálogo sin recargar la página.
+Arquitectura Escalable (Next.js): Diseñado con componentes modulares y optimizado para rendimiento web superior.
+Enlaces de Afiliados Verificados: Integración segura con las plataformas globales más grandes del mundo.
+Despliegue Independiente de Vercel: Totalmente preparado para compilar y ejecutar en servidores propios, VPS con Docker, PM2, Railway o Render.
 
----
 
-## 🛠️ Tecnologías Utilizadas
+🛠️ Tecnologías Utilizadas
 
-* **Framework:** [Next.js](https://nextjs.org/) (App Router)
-* **Librería UI:** React / TypeScript
-* **Estilos:** [Tailwind CSS](https://tailwindcss.com/)
-* **Iconografía:** FontAwesome & Lucide Icons
+Framework: Next.js (App Router)
+Librería UI: React / TypeScript
+Estilos: Tailwind CSS
+Iconografía: FontAwesome & Lucide Icons
 
----
 
-## 📂 Estructura del Proyecto
-
-```text
+📂 Estructura del Proyecto
 my-global-market/
 ├── public/                 # Recursos e iconos estáticos
 ├── src/
