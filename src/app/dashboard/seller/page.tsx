@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
 
 interface Product {
   id: string
@@ -26,7 +27,6 @@ export default function SellerDashboardPage() {
 
   const fetchVendorProducts = async () => {
     try {
-      // Obtenemos primero la tienda del vendedor actual
       const { data: storeData } = await supabase
         .from('stores')
         .select('id')
@@ -65,11 +65,31 @@ export default function SellerDashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-6 text-3xl font-bold text-gray-800">Panel de Vendedor</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Panel de Vendedor / Empresa</h1>
+          <p className="text-gray-600 mt-1">Gestiona tu inventario, publicaciones y ofertas comerciales.</p>
+        </div>
+        <Link
+          href="/products/create"
+          className="rounded bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition shrink-0"
+        >
+          + Publicar Nuevo Producto / Vacante
+        </Link>
+      </div>
+
       <div className="rounded-lg bg-white p-6 shadow-md">
         <h2 className="mb-4 text-xl font-semibold text-gray-700">Tus Productos en Inventario</h2>
         {products.length === 0 ? (
-          <p className="text-gray-500">Aún no tienes productos registrados en tu tienda.</p>
+          <div className="py-8 text-center">
+            <p className="text-gray-500 mb-4">Aún no tienes productos registrados en tu tienda.</p>
+            <Link
+              href="/products/create"
+              className="inline-block rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition"
+            >
+              Crear tu primer producto
+            </Link>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
