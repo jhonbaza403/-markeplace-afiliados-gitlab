@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import UserReputationBadge from '@/components/UserReputationBadge'
+import RatingModal from '@/components/RatingModal'
 
 interface Product {
   id: string
@@ -10,12 +12,18 @@ interface Product {
   price: number
   stock: number
   store_id: string
+  // Asumimos que la tienda trae información del vendedor o su nombre
+  store?: {
+    store_name: string
+    vendor_id: string
+  }
 }
 
 export default function ProductDetailPage() {
   const { id } = useParams()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isRatingOpen, setIsRatingOpen] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -25,9 +33,13 @@ export default function ProductDetailPage() {
 
   const fetchProductDetail = async () => {
     try {
+      // Ajustamos la consulta para traer también los datos de la tienda y su vendedor asociado
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          store:stores(store_name, vendor_id)
+        `)
         .eq('id', id)
         .single()
 
@@ -56,6 +68,28 @@ export default function ProductDetailPage() {
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="rounded-lg bg-white p-8 shadow-md">
         <h1 className="text-3xl font-bold text-gray-800">{product.title}</h1>
+        
+        {/* Sección de Reputación y Vendedor */}
+        {product.store && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+            <div>
+              <span className="text-xs text-gray-400 block uppercase font-bold">Vendido por</span>
+              <span className="text-sm font-bold text-gray-800">{product.store.store_name}</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <UserReputationBadge userId={product.store.vendor_id} />
+              
+              <button
+                onClick={() => setIsRatingOpen(true)}
+                className="px-3 py-1.5 bg-gray-900 text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition"
+              >
+                Calificar Vendedor ⭐
+              </button>
+            </div>
+          </div>
+        )}
+
         <p className="mt-4 text-gray-600 leading-relaxed">{product.description}</p>
         
         <div className="mt-6 flex items-center justify-between border-t pt-6">
@@ -64,11 +98,22 @@ export default function ProductDetailPage() {
         </div>
 
         <div className="mt-8">
-          <button className="w-full rounded bg-blue-600 py-3 text-center font-semibold text-white hover:bg-blue-700 transition">
+          <button className="w-full rounded-xl bg-blue-600 py-3 text-center font-semibold text-white hover:bg-blue-700 transition shadow-lg shadow-blue-100">
             Comprar o Generar Enlace de Afiliado
           </button>
         </div>
       </div>
+
+      {/* Modal para calificar y reportar estafas */}
+      {product.store && (
+        <RatingModal
+          isOpen={isRatingOpen}
+          onClose={() => setIsRatingOpen(false)}
+          targetUserName={product.store.store_name}
+          targetUserId={product.store.vendor_id}
+          role="vendedor"
+        />
+      )}
     </div>
   )
 }
