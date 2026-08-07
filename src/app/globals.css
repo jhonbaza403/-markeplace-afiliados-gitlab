@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 body {
   background-color: #f8fafc;
@@ -8,12 +10,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scroll suave predeterminado */
 html {
   scroll-behavior: smooth;
 }
 
-/* Estilos adicionales de utilidad para tarjetas y transiciones */
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -21,7 +21,6 @@ html {
   overflow: hidden;
 }
 
-/* Personalización elegante de la barra de desplazamiento */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
