@@ -3,7 +3,15 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import { Profile } from '@/types/user'
+
+export interface Profile {
+  id: string
+  nombre?: string
+  full_name?: string
+  rol?: string
+  role?: string
+  [key: string]: any
+}
 
 interface AuthContextType {
   user: User | null
