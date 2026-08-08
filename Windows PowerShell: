@@ -1,10 +1,4 @@
-# Entorno local de desarrollo para Wrangler / OpenNext
-NODE_ENV="development"
-
-# Supabase (Reemplaza con tus credenciales de desarrollo)
-NEXT_PUBLIC_SUPABASE_URL="https://tu-proyecto.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="tu-anon-key-de-supabase"
-
-# Prisma / Base de datos
-DATABASE_URL="postgresql://usuario:password@localhost:5432/tu_db?schema=public"
-DIRECT_URL="postgresql://usuario:password@localhost:5432/tu_db?schema=public"
+Remove-Item -Recurse -Force node_modules, .next, .open-next -ErrorAction SilentlyContinue
+Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue
+npm cache clean --force
+npm install
