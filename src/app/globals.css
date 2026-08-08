@@ -1,12 +1,22 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
 :root {
   --background: #ffffff;
   --foreground: #111827;
 }
 
-* {
-  box-sizing: border-box;
+/* Soporte nativo de tema oscuro basado en la preferencia del sistema */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #090d16;
+    --foreground: #f9fafb;
+  }
 }
 
 html {
@@ -14,8 +24,11 @@ html {
 }
 
 body {
-  margin: 0;
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
