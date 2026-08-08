@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode } from 'react'
 
 interface RegionContextType {
   selectedRegion: string
@@ -9,33 +9,35 @@ interface RegionContextType {
   setCurrency: (currency: string) => void
 }
 
-const RegionContext = createContext<RegionContextType>({
-  selectedRegion: 'GLOBAL',
-  setSelectedRegion: () => {},
-  currency: 'USD',
-  setCurrency: () => {},
-})
+const RegionContext = createContext<RegionContextType | undefined>(undefined)
 
-export const RegionProvider = ({ children }: { children: ReactNode }) => {
-  const [selectedRegion, setSelectedRegion] = useState<string>('GLOBAL')
-  const [currency, setCurrency] = useState<string>('USD')
+// Helper para actualizar cookies compatibles con Next.js / Server Actions
+const setCookie = (name: string, value: string, days = 365) => {
+  if (typeof document === 'undefined') return
+  const expires = new Date(Date.now() + days * 864e5).toUTCString()
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`
+}
 
-  useEffect(() => {
-    // Puedes guardar la preferencia en localStorage si el usuario la cambia
-    const savedRegion = localStorage.getItem('app_region')
-    const savedCurrency = localStorage.getItem('app_currency')
-    if (savedRegion) setSelectedRegion(savedRegion)
-    if (savedCurrency) setCurrency(savedCurrency)
-  }, [])
+export const RegionProvider = ({
+  children,
+  initialRegion = 'GLOBAL',
+  initialCurrency = 'USD',
+}: {
+  children: ReactNode
+  initialRegion?: string
+  initialCurrency?: string
+}) => {
+  const [selectedRegion, setSelectedRegion] = useState<string>(initialRegion)
+  const [currency, setCurrency] = useState<string>(initialCurrency)
 
   const handleSetRegion = (region: string) => {
     setSelectedRegion(region)
-    localStorage.setItem('app_region', region)
+    setCookie('app_region', region)
   }
 
   const handleSetCurrency = (curr: string) => {
     setCurrency(curr)
-    localStorage.setItem('app_currency', curr)
+    setCookie('app_currency', curr)
   }
 
   return (
