@@ -1,38 +1,56 @@
-# Dependencies
+# Dependencias
 node_modules/
+.pnpm-store/
 
-# Next.js
+# Next.js y Salidas de Compilación
 .next/
 out/
+build/
+dist/
 
-# OpenNext
+# OpenNext & Cloudflare Workers
 .open-next/
-
-# Cloudflare
 .wrangler/
 
-# Environment variables
+# Variables de Entorno y Secretos Locales
 .env
-.env.local
+.env*.local
 .env.development
 .env.production
 .dev.vars
 
-# TypeScript
-*.tsbuildinfo
+# Prisma y Bases de Datos Locales
+*.db
+*.db-journal
+dev.db
+dev.db-journal
 
-# Logs
+# TypeScript, Turbo y Cachés
+*.tsbuildinfo
+.turbo/
+
+# Registros (Logs)
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
 
-# OS
+# Pruebas y Cobertura
+coverage/
+.nyc_output/
+
+# Sistema Operativo
 .DS_Store
 Thumbs.db
+*.pem
 
-# IDE
-.vscode/
+# IDEs y Editores
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 .idea/
-
-# Testing
-coverage/
+*.sw?
