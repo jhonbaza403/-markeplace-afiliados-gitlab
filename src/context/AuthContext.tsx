@@ -9,12 +9,14 @@ interface AuthContextType {
   user: User | null
   profile: Profile | null
   loading: boolean
+  signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   loading: true,
+  signOut: async () => {},
 })
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -66,8 +68,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [])
 
+  const signOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setProfile(null)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading }}>
+    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   )
