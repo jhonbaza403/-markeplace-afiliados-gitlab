@@ -76,7 +76,7 @@ export default function ProductsPage() {
                   <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">Stock: {product.stock}</span>
                 </div>
                 <Link
-                  href={`/marketplace/products/${product.id}`}
+                  href={`/products/detail?id=${product.id}`}
                   className="block w-full rounded-xl bg-blue-600 py-2.5 text-center text-sm font-semibold text-white hover:bg-blue-700 transition shadow-sm"
                 >
                   Ver Detalle y Afiliarme
