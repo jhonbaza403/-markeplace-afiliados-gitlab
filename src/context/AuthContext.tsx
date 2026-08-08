@@ -1,4 +1,4 @@
-[8:08 p.m., 7/8/2026] jhonbazayasociados: 'use client'
+'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User } from '@supabase/supabase-js'
