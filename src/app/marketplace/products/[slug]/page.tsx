@@ -1,10 +1,11 @@
 import React from 'react'
 import { Product } from '@/types/product'
 
+// 1. Tipamos `params` como una Promesa según la nueva API asíncrona de Next.js 15
 interface ProductDetailPageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 export async function generateStaticParams() {
@@ -15,7 +16,8 @@ export async function generateStaticParams() {
 }
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
-  const { slug } = params
+  // 2. Resolvemos la promesa de `params` con await antes de destructurar `slug`
+  const { slug } = await params
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
