@@ -1,5 +1,4 @@
-import { NextResponse } from 'net/http' // O standard Request/Response de Next.js
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
@@ -32,9 +31,6 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (orderError) throw orderError
-
-    // 3. Aquí integrarías la lógica de respuesta para la pasarela de pagos (ej. PayPal / Stripe)
-    // Devolviendo las instrucciones o el enlace de pago seguro global
 
     return NextResponse.json(
       {
