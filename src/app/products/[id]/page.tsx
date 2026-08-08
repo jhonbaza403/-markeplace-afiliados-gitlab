@@ -1,4 +1,5 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -12,11 +13,17 @@ interface Product {
   price: number
   stock: number
   store_id: string
-  // Asumimos que la tienda trae información del vendedor o su nombre
   store?: {
     store_name: string
     vendor_id: string
   }
+}
+
+export async function generateStaticParams() {
+  return [
+    { id: '1' },
+    { id: '2' }
+  ]
 }
 
 export default function ProductDetailPage() {
@@ -33,7 +40,6 @@ export default function ProductDetailPage() {
 
   const fetchProductDetail = async () => {
     try {
-      // Ajustamos la consulta para traer también los datos de la tienda y su vendedor asociado
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -69,7 +75,6 @@ export default function ProductDetailPage() {
       <div className="rounded-lg bg-white p-8 shadow-md">
         <h1 className="text-3xl font-bold text-gray-800">{product.title}</h1>
         
-        {/* Sección de Reputación y Vendedor */}
         {product.store && (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
             <div>
@@ -104,7 +109,6 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Modal para calificar y reportar estafas */}
       {product.store && (
         <RatingModal
           isOpen={isRatingOpen}
