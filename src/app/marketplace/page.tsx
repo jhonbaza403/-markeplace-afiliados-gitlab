@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react'
 import { ProductCard } from '@/features/marketplace/components/ProductCard'
 import { Product } from '@/types/product'
