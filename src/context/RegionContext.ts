@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react'
 
 interface RegionContextType {
   selectedRegion: string
@@ -9,20 +9,21 @@ interface RegionContextType {
   setCurrency: (currency: string) => void
 }
 
-const RegionContext = createContext<RegionContextType>({
-  selectedRegion: 'GLOBAL',
-  setSelectedRegion: () => {},
-  currency: 'USD',
-  setCurrency: () => {},
-})
+// 1. Mejor tipado: inicializar con undefined para garantizar que se detecte el uso fuera del Provider
+const RegionContext = createContext<RegionContextType | undefined>(undefined)
 
 export const RegionProvider = ({ children }: { children: ReactNode }) => {
   const [selectedRegion, setSelectedRegion] = useState<string>('GLOBAL')
   const [currency, setCurrency] = useState<string>('USD')
+  
+  // 2. Estado para controlar la hidratación y evitar discrepancias entre Server y Client
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
     const savedRegion = localStorage.getItem('app_region')
     const savedCurrency = localStorage.getItem('app_currency')
+    
     if (savedRegion) setSelectedRegion(savedRegion)
     if (savedCurrency) setCurrency(savedCurrency)
   }, [])
@@ -37,18 +38,26 @@ export const RegionProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('app_currency', curr)
   }
 
-  return (
-    <RegionContext.Provider
-      value={{
-        selectedRegion,
-        setSelectedRegion: handleSetRegion,
-        currency,
-        setCurrency: handleSetCurrency,
-      }}
-    >
-      {children}
-    </RegionContext.Provider>
+  // 3. useMemo: Evita re-renderizados innecesarios en los componentes consumidores
+  const value = useMemo(
+    () => ({
+      selectedRegion,
+      setSelectedRegion: handleSetRegion,
+      currency,
+      setCurrency: handleSetCurrency,
+    }),
+    [selectedRegion, currency] // Solo se recalcula si estas variables cambian
   )
+
+  // 4. Prevenir parpadeos o errores de hidratación ocultando temporalmente (opcional pero recomendado)
+  // Si necesitas que el HTML inicial se renderice por SEO, puedes omitir este if, pero
+  // debes estar consciente de que los valores iniciales ('GLOBAL' / 'USD') parpadearán.
+  if (!isMounted) {
+    return null 
+  }
+
+  // 5. React 19 (Next.js 15): Puedes usar directamente `<RegionContext>` en lugar de `<RegionContext.Provider>`
+  return <RegionContext value={value}>{children}</RegionContext>
 }
 
 export const useRegion = () => {
