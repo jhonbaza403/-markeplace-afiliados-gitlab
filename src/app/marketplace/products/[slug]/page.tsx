@@ -7,10 +7,16 @@ interface ProductDetailPageProps {
   }
 }
 
+export async function generateStaticParams() {
+  return [
+    { slug: 'smartphone-ultima-generacion' },
+    { slug: 'laptop-profesional-ultradelgada' }
+  ]
+}
+
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { slug } = params
 
-  // Aquí consultaremos posteriormente el producto real usando Prisma o Supabase mediante el slug
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-8">
