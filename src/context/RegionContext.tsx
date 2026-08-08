@@ -1,69 +1,134 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { User } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 
-interface RegionContextType {
-  selectedRegion: string
-  setSelectedRegion: (region: string) => void
-  currency: string
-  setCurrency: (currency: string) => void
+export interface Profile {
+  id: string
+  nombre?: string
+  full_name?: string
+  rol?: 'admin' | 'vendedor' | 'cliente' | 'afiliado' | string
+  role?: string
+  avatar_url?: string
+  updated_at?: string
+  [key: string]: unknown
 }
 
-// 1. Mejor tipado: inicializar con undefined para garantizar que se detecte el uso fuera del Provider
-const RegionContext = createContext<RegionContextType | undefined>(undefined)
+interface AuthContextType {
+  user: User | null
+  profile: Profile | null
+  loading: boolean
+  signOut: () => Promise<void>
+}
 
-export const RegionProvider = ({ children }: { children: ReactNode }) => {
-  const [selectedRegion, setSelectedRegion] = useState<string>('GLOBAL')
-  const [currency, setCurrency] = useState<string>('USD')
-  
-  // 2. Estado para controlar la hidratación y evitar discrepancias entre Server y Client
-  const [isMounted, setIsMounted] = useState(false)
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+
+  // Función reutilizable para obtener la información del perfil del usuario
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (error) {
+        console.error('Error al obtener el perfil de Supabase:', error.message)
+        return null
+      }
+      return data as Profile | null
+    } catch (err) {
+      console.error('Error inesperado consultando perfil:', err)
+      return null
+    }
+  }
 
   useEffect(() => {
-    setIsMounted(true)
-    const savedRegion = localStorage.getItem('app_region')
-    const savedCurrency = localStorage.getItem('app_currency')
-    
-    if (savedRegion) setSelectedRegion(savedRegion)
-    if (savedCurrency) setCurrency(savedCurrency)
+    let mounted = true
+
+    // 1. Carga inicial de sesión
+    const initializeAuth = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
+        if (error) {
+          console.error('Error al obtener la sesión actual:', error.message)
+        }
+
+        if (mounted) {
+          const currentUser = session?.user ?? null
+          setUser(currentUser)
+
+          if (currentUser) {
+            const userProfile = await fetchProfile(currentUser.id)
+            if (mounted) setProfile(userProfile)
+          }
+        }
+      } catch (err) {
+        console.error('Error inicializando autenticación:', err)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    initializeAuth()
+
+    // 2. Escuchar cambios de estado en tiempo real (login, logout, refresh de token)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return
+
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+
+      if (currentUser) {
+        const userProfile = await fetchProfile(currentUser.id)
+        if (mounted) setProfile(userProfile)
+      } else {
+        setProfile(null)
+      }
+
+      setLoading(false)
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  const handleSetRegion = (region: string) => {
-    setSelectedRegion(region)
-    localStorage.setItem('app_region', region)
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err)
+    } finally {
+      setUser(null)
+      setProfile(null)
+    }
   }
 
-  const handleSetCurrency = (curr: string) => {
-    setCurrency(curr)
-    localStorage.setItem('app_currency', curr)
-  }
-
-  // 3. useMemo: Evita re-renderizados innecesarios en los componentes consumidores
-  const value = useMemo(
-    () => ({
-      selectedRegion,
-      setSelectedRegion: handleSetRegion,
-      currency,
-      setCurrency: handleSetCurrency,
-    }),
-    [selectedRegion, currency] // Solo se recalcula si estas variables cambian
+  return (
+    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
+      {children}
+    </AuthContext.Provider>
   )
-
-  // 4. Prevenir parpadeos o errores de hidratación ocultando temporalmente (opcional pero recomendado)
-  // Si necesitas que el HTML inicial se renderice por SEO, puedes omitir este if, pero
-  // debes estar consciente de que los valores iniciales ('GLOBAL' / 'USD') parpadearán.
-  if (!isMounted) {
-    return null 
-  }
-
-  // 5. React 19 (Next.js 15): Puedes usar directamente `<RegionContext>` en lugar de `<RegionContext.Provider>`
-  return <RegionContext value={value}>{children}</RegionContext>
 }
 
-export const useRegion = () => {
-  const context = useContext(RegionContext)
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext)
   if (!context) {
-    throw new Error('useRegion debe ser usado dentro de un RegionProvider')
+    throw new Error('useAuth debe ser utilizado dentro de un AuthProvider')
   }
   return context
 }
