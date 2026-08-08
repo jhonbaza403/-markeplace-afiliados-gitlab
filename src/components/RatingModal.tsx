@@ -1,5 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface RatingModalProps {
@@ -10,14 +11,20 @@ interface RatingModalProps {
   role: 'cliente' | 'vendedor'
 }
 
-export default function RatingModal({ isOpen, onClose, targetUserName, targetUserId, role }: RatingModalProps) {
+export default function RatingModal({
+  isOpen,
+  onClose,
+  targetUserName,
+  targetUserId,
+  role,
+}: RatingModalProps) {
   const [rating, setRating] = useState<number>(5)
   const [comment, setComment] = useState('')
   const [isScamReport, setIsScamReport] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // Resetea los estados si el modal se cierra inesperadamente
+  // Resetea los estados si el modal se cierra o cambia de visibilidad
   useEffect(() => {
     if (!isOpen) {
       setLoading(false)
@@ -32,8 +39,8 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // 1. Validación de seguridad: Evitar comentarios vacíos o de puros espacios
+
+    // 1. Validación de seguridad: Evitar comentarios vacíos
     const trimmedComment = comment.trim()
     if (!trimmedComment) {
       alert('Por favor, ingresa un comentario válido antes de enviar.')
@@ -44,7 +51,10 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
 
     try {
       // 2. Obtener el usuario autenticado actual (quien califica)
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
 
       if (authError || !user) {
         alert('Debes iniciar sesión para poder calificar.')
@@ -52,7 +62,7 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
         return
       }
 
-      // 3. Prevención de errores lógicos: Evitar que el usuario se califique a sí mismo
+      // 3. Evitar autocalificación
       if (user.id === targetUserId) {
         alert('No puedes calificarte a ti mismo.')
         setLoading(false)
@@ -64,15 +74,15 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
         reviewer_id: user.id,
         target_user_id: targetUserId,
         rating: rating,
-        comment: trimmedComment, // Enviamos el comentario limpio
-        is_scam_report: isScamReport
+        comment: trimmedComment,
+        is_scam_report: isScamReport,
       })
 
       if (insertError) throw insertError
 
       setSubmitted(true)
-      
-      // 5. Cerrar de forma segura con un temporizador
+
+      // 5. Cierre seguro con temporizador
       setTimeout(() => {
         setSubmitted(false)
         setComment('')
@@ -81,9 +91,10 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
         setLoading(false)
         onClose()
       }, 2000)
-
-    } catch (err: unknown) { // "unknown" evita errores de tipado estricto en TypeScript
-      console.error('Error al guardar la calificación:', err)
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Error al guardar la calificación.'
+      console.error('Error al guardar la calificación:', errorMessage)
       alert('Hubo un error al registrar la calificación. Por favor intenta de nuevo.')
       setLoading(false)
     }
@@ -91,11 +102,12 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl relative">
-        <button 
+      <div className="w-full max-w-md rounded-2xl bg-card text-card-foreground p-6 shadow-2xl border border-border relative">
+        <button
+          type="button"
           onClick={onClose}
           aria-label="Cerrar modal"
-          className="absolute right-4 top-4 text-gray-400 hover:text-gray-700 transition"
+          className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
           ✕
         </button>
@@ -103,23 +115,23 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
         {submitted ? (
           <div className="text-center py-8">
             <div className="text-5xl mb-3">🛡️</div>
-            <h3 className="text-xl font-bold text-gray-800">¡Calificación Registrada!</h3>
-            <p className="text-sm text-gray-500 mt-2">
+            <h3 className="text-xl font-bold text-foreground">¡Calificación Registrada!</h3>
+            <p className="text-sm text-muted-foreground mt-2">
               Gracias por ayudar a mantener nuestra comunidad segura y libre de estafas.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
-            <h3 className="text-xl font-bold text-gray-800 mb-1">
+            <h3 className="text-xl font-bold text-foreground mb-1">
               Calificar a este {role} ⭐
             </h3>
-            <p className="text-sm text-gray-500 mb-6">
-              Usuario: <strong className="text-gray-800">{targetUserName}</strong>
+            <p className="text-sm text-muted-foreground mb-6">
+              Usuario: <strong className="text-foreground">{targetUserName}</strong>
             </p>
 
             {/* Selector de Estrellas */}
             <div className="mb-6 text-center">
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
+              <label className="block text-xs font-bold uppercase text-muted-foreground mb-2">
                 Puntuación de Experiencia
               </label>
               <div className="flex justify-center gap-2">
@@ -128,8 +140,8 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
                     key={star}
                     type="button"
                     onClick={() => setRating(star)}
-                    className={`text-3xl transition ${
-                      star <= rating ? 'text-amber-400 scale-110' : 'text-gray-300'
+                    className={`text-3xl transition-transform hover:scale-125 cursor-pointer ${
+                      star <= rating ? 'text-amber-400 scale-110' : 'text-muted-foreground/30'
                     }`}
                   >
                     ★
@@ -140,7 +152,7 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
 
             {/* Comentario sobre la transacción */}
             <div className="mb-4">
-              <label className="block text-xs font-bold text-gray-600 mb-2">
+              <label className="block text-xs font-bold text-muted-foreground mb-2">
                 Opinión sobre el comportamiento o pago:
               </label>
               <textarea
@@ -148,26 +160,26 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Ej. Excelente comprador, pago puntual / No respondió a los mensajes..."
-                className="w-full rounded-lg border p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full rounded-xl border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                 required
               />
             </div>
 
             {/* Alerta de Reporte de Estafa */}
-            <div className="mb-6 rounded-xl bg-red-50 p-3 border border-red-200">
+            <div className="mb-6 rounded-xl bg-destructive/10 p-3 border border-destructive/20">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={isScamReport}
                   onChange={(e) => setIsScamReport(e.target.checked)}
-                  className="rounded border-red-300 text-red-600 focus:ring-red-500 h-4 w-4"
+                  className="rounded border-destructive text-destructive focus:ring-destructive h-4 w-4"
                 />
-                <span className="text-xs font-bold text-red-700">
+                <span className="text-xs font-bold text-destructive">
                   ⚠️ Reportar intento de estafa o fraude
                 </span>
               </label>
               {isScamReport && (
-                <p className="text-[11px] text-red-600 mt-1 pl-6">
+                <p className="text-[11px] text-destructive/90 mt-1 pl-6">
                   Si este usuario acumula reportes por fraude, el sistema procederá con la suspensión o eliminación automática de su cuenta.
                 </p>
               )}
@@ -176,15 +188,19 @@ export default function RatingModal({ isOpen, onClose, targetUserName, targetUse
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 rounded-xl font-bold text-white transition ${
+              className={`w-full py-3 rounded-xl font-bold transition-all shadow-md cursor-pointer ${
                 loading ? 'opacity-50 cursor-not-allowed' : ''
               } ${
-                isScamReport 
-                  ? 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-200' 
-                  : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200'
+                isScamReport
+                  ? 'bg-destructive text-destructive-foreground hover:opacity-90'
+                  : 'bg-primary text-primary-foreground hover:opacity-90'
               }`}
             >
-              {loading ? 'Guardando...' : (isScamReport ? 'Enviar Reporte de Seguridad' : 'Guardar Calificación')}
+              {loading
+                ? 'Guardando...'
+                : isScamReport
+                ? 'Enviar Reporte de Seguridad'
+                : 'Guardar Calificación'}
             </button>
           </form>
         )}
