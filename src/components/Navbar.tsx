@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { RegionSelector } from '@/components/marketplace/RegionSelector'
@@ -8,62 +9,86 @@ export default function Navbar() {
   const { user, profile, signOut } = useAuth()
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md transition-colors">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Navegación principal">
         <div className="flex justify-between h-16 items-center">
+          {/* Logo y Enlaces Principales */}
           <div className="flex items-center space-x-6">
-            <Link href="/" className="text-xl font-bold text-blue-600">
+            <Link 
+              href="/" 
+              className="text-xl font-extrabold tracking-tight text-primary hover:opacity-90 transition-opacity"
+            >
               Marketplace Afiliados
             </Link>
-            <div className="hidden md:flex space-x-5 text-sm font-medium text-gray-600">
-              <Link href="/products" className="hover:text-blue-600">Productos</Link>
-              <Link href="/magazines" className="hover:text-blue-600">Revistas</Link>
-              <Link href="/jobs" className="hover:text-blue-600">Empleos</Link>
+            <div className="hidden md:flex items-center space-x-5 text-sm font-medium text-muted-foreground">
+              <Link href="/products" className="hover:text-foreground transition-colors">
+                Productos
+              </Link>
+              <Link href="/magazines" className="hover:text-foreground transition-colors">
+                Revistas
+              </Link>
+              <Link href="/jobs" className="hover:text-foreground transition-colors">
+                Empleos
+              </Link>
             </div>
           </div>
 
+          {/* Acciones de Usuario y Selector de Región */}
           <div className="flex items-center space-x-4">
-            {/* Selector global de región y moneda integrado */}
+            {/* Selector global de región y moneda */}
             <RegionSelector />
 
             {user ? (
               <div className="flex items-center space-x-3">
-                <span className="text-sm text-gray-700 hidden sm:inline font-medium">
+                <span className="text-sm font-medium text-foreground hidden sm:inline">
                   {profile?.nombre || user.email}
                 </span>
 
                 {profile?.rol === 'admin' && (
-                  <Link href="/dashboard/admin" className="text-xs bg-purple-100 text-purple-700 px-2.5 py-1 rounded-lg font-semibold hover:bg-purple-200">
+                  <Link
+                    href="/dashboard/admin"
+                    className="text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 px-2.5 py-1 rounded-lg font-semibold hover:bg-purple-500/20 transition-colors"
+                  >
                     Admin
                   </Link>
                 )}
 
                 {profile?.rol === 'vendedor' && (
-                  <Link href="/dashboard/seller" className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-lg font-semibold hover:bg-blue-200">
+                  <Link
+                    href="/dashboard/seller"
+                    className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-lg font-semibold hover:bg-primary/20 transition-colors"
+                  >
                     Panel Vendedor
                   </Link>
                 )}
 
                 <button
+                  type="button"
                   onClick={signOut}
-                  className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-600 transition"
+                  className="rounded-xl bg-destructive text-destructive-foreground px-3 py-1.5 text-xs font-bold hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
                 >
                   Salir
                 </button>
               </div>
             ) : (
               <div className="flex items-center space-x-3">
-                <Link href="/auth/login" className="text-sm font-semibold text-gray-700 hover:text-blue-600">
+                <Link
+                  href="/auth/login"
+                  className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                >
                   Entrar
                 </Link>
-                <Link href="/auth/register" className="text-sm font-semibold bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition shadow-sm">
+                <Link
+                  href="/auth/register"
+                  className="text-sm font-semibold bg-primary text-primary-foreground px-4 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-sm"
+                >
                   Registrarse
                 </Link>
               </div>
             )}
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </header>
   )
 }
