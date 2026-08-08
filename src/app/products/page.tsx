@@ -7,7 +7,7 @@ import Link from 'next/link'
 interface Product {
   id: string
   title: string
-  description: string
+  description?: string
   price: number
   stock: number
   store_id: string
@@ -67,13 +67,19 @@ export default function ProductsPage() {
             <div key={product.id} className="rounded-2xl bg-white p-5 shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
               <div>
                 <h3 className="text-lg font-semibold text-gray-800">{product.title}</h3>
-                <p className="mt-2 text-sm text-gray-600 line-clamp-2">{product.description}</p>
+                <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                  {product.description || 'Sin descripción disponible'}
+                </p>
               </div>
 
               <div className="mt-6 pt-4 border-t border-gray-100">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xl font-extrabold text-blue-600">${product.price.toFixed(2)}</span>
-                  <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">Stock: {product.stock}</span>
+                  <span className="text-xl font-extrabold text-blue-600">
+                    ${typeof product.price === 'number' ? product.price.toFixed(2) : '0.00'}
+                  </span>
+                  <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                    Stock: {product.stock ?? 0}
+                  </span>
                 </div>
                 <Link
                   href={`/products/detail?id=${product.id}`}
