@@ -37,7 +37,7 @@
     "prisma": "^6.4.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.8.0",
-    "wrangler": "^3.100.0"
+    "wrangler": "^4.86.0"
   },
   "engines": {
     "node": ">=20.9.0"
