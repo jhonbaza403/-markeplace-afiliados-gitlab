@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "opennextjs-cloudflare build",
+    "build:next": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -24,8 +25,8 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "latest",
-    "@tailwindcss/postcss": "latest",
+    "@opennextjs/cloudflare": "^1.20.2",
+    "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
@@ -36,7 +37,7 @@
     "prisma": "^6.4.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.8.0",
-    "wrangler": "latest"
+    "wrangler": "^3.100.0"
   },
   "engines": {
     "node": ">=20.9.0"
