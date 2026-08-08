@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
+import { RegionSelector } from '@/components/marketplace/RegionSelector'
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth()
@@ -22,6 +23,9 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center space-x-4">
+            {/* Selector global de región y moneda integrado */}
+            <RegionSelector />
+
             {user ? (
               <div className="flex items-center space-x-3">
                 <span className="text-sm text-gray-700 hidden sm:inline font-medium">
