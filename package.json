@@ -1,4 +1,26 @@
-"devDependencies": {
+{
+  "name": "markeplace-afiliados-gitlab",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "build:worker": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare preview && wrangler dev",
+    "deploy": "opennextjs-cloudflare deploy && wrangler deploy"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@prisma/client": "^5.10.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "lucide-react": "^0.344.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
     "@opennextjs/cloudflare": "^1.6.0",
     "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",
@@ -10,3 +32,4 @@
     "typescript": "^5.3.3",
     "wrangler": "^3.114.17"
   }
+}
