@@ -1,26 +1,32 @@
-import { UserRole } from '@/types/users';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-/**
- * Verifica si un usuario tiene un rol específico.
- * Los administradores siempre tienen permiso.
- */
-export function hasRequiredRole(userRoles: UserRole[], requiredRole: UserRole): boolean {
-  if (!userRoles || userRoles.length === 0) return false;
-  if (userRoles.includes('admin')) return true; // El admin todo lo puede
+export function middleware(request: NextRequest) {
+  // Simulamos la lectura del token de sesión (Supabase por defecto usa cookies específicas)
+  // En producción, aquí verificarías la cookie real de autenticación.
+  const authCookie = request.cookies.get('sb-access-token') || request.cookies.get('supabase-auth-token');
   
-  return userRoles.includes(requiredRole);
+  const { pathname } = request.nextUrl;
+
+  // Proteger rutas de Dashboard y Admin
+  const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
+
+  if (isProtectedRoute && !authCookie) {
+    // Si intenta acceder a una ruta protegida sin sesión, redirigir al login
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // Redirigir si el usuario ya está logueado e intenta ir a login/register
+  const isAuthRoute = pathname === '/login' || pathname === '/register';
+  
+  if (isAuthRoute && authCookie) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  return NextResponse.next();
 }
 
-/**
- * Sanitización básica de strings para prevenir inyecciones XSS simples
- * en inputs que luego se renderizarán.
- */
-export function sanitizeInput(input: string): string {
-  if (!input) return '';
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
-}
+export const config = {
+  // Rutas en las que se ejecutará este middleware
+  matcher: ['/dashboard/:path*', '/admin/:path*', '/login', '/register'],
+};
