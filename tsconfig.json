@@ -1,63 +1,43 @@
-import type { Config } from "tailwindcss";
-
-const config: Config = {
-  darkMode: "class",
-
-  content: [
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/context/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/features/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/data/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/lib/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/types/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
-
-  theme: {
-    container: {
-      center: true,
-      padding: {
-        DEFAULT: "1rem",
-        sm: "1.5rem",
-        lg: "2rem",
-        xl: "3rem",
-        "2xl": "4rem",
-      },
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
     },
-
-    extend: {
-      colors: {
-        marketplace: {
-          50: "#eff6ff",
-          100: "#dbeafe",
-          200: "#bfdbfe",
-          300: "#93c5fd",
-          400: "#60a5fa",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
-          800: "#1e40af",
-          900: "#1e3a8a",
-        },
-      },
-
-      borderRadius: {
-        marketplace: "0.875rem",
-      },
-
-      boxShadow: {
-        marketplace:
-          "0 4px 20px rgba(15, 23, 42, 0.08)",
-
-        "marketplace-lg":
-          "0 12px 40px rgba(15, 23, 42, 0.12)",
-      },
-
-      maxWidth: {
-        marketplace: "1440px",
-      },
-    },
+    "forceConsistentCasingInFileNames": true
   },
-
-  plugins: [],
-};
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".open-next/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
