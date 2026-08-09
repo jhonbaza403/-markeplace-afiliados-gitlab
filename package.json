@@ -1,82 +1,35 @@
-18:24:35.839
-Import trace for requested module:
-18:24:35.839
-./src/app/globals.css
-18:24:35.840
-18:24:35.840
-./src/app/globals.css
-18:24:35.840
-Error: Can't resolve 'tailwindcss'
-18:24:35.840
-    at finishWithoutResolve (/opt/buildhome/repo/node_modules/next/dist/compiled/webpack/bundle5.js:1:191837)
-18:24:35.840
-    at /opt/buildhome/repo/node_modules/next/dist/compiled/webpack/bundle5.js:1:192737
-18:24:35.841
-    at /opt/buildhome/repo/node_modules/next/dist/compiled/webpack/bundle5.js:1:193370
-18:24:35.841
-    at eval (eval at create (/opt/buildhome/repo/node_modules/next/dist/compiled/webpack/bundle5.js:14:9224), <anonymous>:16:1)
-18:24:35.841
-    at /opt/buildhome/repo/node_modules/next/dist/compiled/webpack/bundle5.js:1:193370
-18:24:35.841
-    at eval (eval at create (/opt/buildhome/repo/node_modules/next/dist/compiled/webpack/bundle5.js:14:9224), <anonymous>:27:1)
-18:24:35.841
-    at /opt/buildhome/repo/node_modules/next/dist/compiled/webpack/bundle5.js:1:175252
-18:24:35.841
-    at /opt/buildhome/repo/node_modules/next/dist/compiled/webpack/bundle5.js:1:193370
-18:24:35.842
-    at eval (eval at create (/opt/buildhome/repo/node_modules/next/dist/compiled/webpack/bundle5.js:14:9224), <anonymous>:16:1)
-18:24:35.842
-    at /opt/buildhome/repo/node_modules/next/dist/compiled/webpack/bundle5.js:1:208998
-18:24:35.842
-18:24:35.842
-https://nextjs.org/docs/messages/module-not-found
-18:24:35.842
-18:24:35.845
-18:24:35.845
-> Build failed because of webpack errors
-18:24:35.871
-error: script "build" exited with code 1
-18:24:35.874
-node:internal/errors:985
-18:24:35.875
-  const err = new Error(message);
-18:24:35.875
-              ^
-18:24:35.875
-18:24:35.875
-Error: Command failed: bun run build
-18:24:35.875
-    at genericNodeError (node:internal/errors:985:15)
-18:24:35.875
-    at wrappedFn (node:internal/errors:539:14)
-18:24:35.875
-    at checkExecSyncError (node:child_process:925:11)
-18:24:35.876
-    at Object.execSync (node:child_process:997:15)
-18:24:35.876
-    at buildNextjsApp (file:///opt/buildhome/repo/node_modules/@opennextjs/aws/dist/build/buildNextApp.js:15:8)
-18:24:35.876
-    at build (file:///opt/buildhome/repo/node_modules/@opennextjs/cloudflare/dist/cli/build/build.js:63:9)
-18:24:35.876
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-18:24:35.876
-    at async buildCommand (file:///opt/buildhome/repo/node_modules/@opennextjs/cloudflare/dist/cli/commands/build.js:40:5) {
-18:24:35.877
-  status: 1,
-18:24:35.877
-  signal: null,
-18:24:35.877
-  output: [ null, null, null ],
-18:24:35.877
-  pid: 1877,
-18:24:35.877
-  stdout: null,
-18:24:35.877
-  stderr: null
-18:24:35.877
+{
+  "name": "markeplace-afiliados-gitlab",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "build:worker": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare preview && wrangler dev",
+    "deploy": "opennextjs-cloudflare deploy && wrangler deploy"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@prisma/client": "^5.10.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "lucide-react": "^0.344.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "^1.6.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.35",
+    "prisma": "^5.10.0",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.114.17"
+  }
 }
-18:24:35.880
-18:24:35.880
-Node.js v24.18.0
-18:24:35.930
-Failed: error occurred while running build command
