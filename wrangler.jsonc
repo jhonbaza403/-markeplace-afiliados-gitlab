@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "markeplace-afiliados-gitlab",
   "main": ".open-next/worker.js",
-  "compatibility_date": "2026-07-21",
+  "compatibility_date": "2024-09-23",
   "compatibility_flags": [
     "nodejs_compat"
   ],
@@ -16,9 +16,6 @@
       "service": "markeplace-afiliados-gitlab"
     }
   ],
-  "images": {
-    "binding": "IMAGES"
-  },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
