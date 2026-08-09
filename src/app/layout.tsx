@@ -17,15 +17,27 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+// Función de apoyo para obtener una URL base válida sin romper el proceso de build
+const getMetadataBase = (): URL => {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl) {
+    try {
+      const formattedUrl = envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
+      return new URL(formattedUrl);
+    } catch {
+      // Si la variable de entorno es inválida, continúa al fallback predeterminado
+    }
+  }
+  return new URL("https://markeplace-afiliados-gitlab.pages.dev");
+};
+
 export const metadata: Metadata = {
   title: {
     default: "Marketplace Afiliados | Credi Marketplace",
     template: "%s | Credi Marketplace",
   },
   description: "Plataforma multi-vendedor y sistema de afiliados global.",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://markeplace-afiliados-gitlab.pages.dev"
-  ),
+  metadataBase: getMetadataBase(),
 };
 
 export default function RootLayout({
@@ -35,7 +47,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={inter.variable} suppressHydrationWarning>
-      <body className={`${inter.className} antialiased min-h-screen flex flex-col bg-background text-foreground`}>
+      <body
+        className={`${inter.className} antialiased min-h-screen flex flex-col bg-background text-foreground`}
+        suppressHydrationWarning
+      >
         <AuthProvider>
           <RegionProvider>
             <Navbar />
