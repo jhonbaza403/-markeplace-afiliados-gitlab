@@ -1,28 +1,32 @@
-'use client'
+import './globals.css';
+import { AuthProvider } from '@/context/AuthContext';
+import { CartProvider } from '@/context/CartContext';
+import { LanguageProvider } from '@/context/LanguageContext';
+import { RegionProvider } from '@/context/RegionContext';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+export const metadata = {
+  title: 'Credi Marketplace',
+  description: 'Plataforma global de servicios y comercio',
+};
 
-interface RegionContextType {
-  region: string
-  setRegion: (region: string) => void
-}
-
-const RegionContext = createContext<RegionContextType | undefined>(undefined)
-
-export const RegionProvider = ({ children }: { children: ReactNode }) => {
-  const [region, setRegion] = useState<string>('default')
-
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <RegionContext.Provider value={{ region, setRegion }}>
-      {children}
-    </RegionContext.Provider>
-  )
-}
-
-export const useRegion = (): RegionContextType => {
-  const context = useContext(RegionContext)
-  if (!context) {
-    throw new Error('useRegion debe ser utilizado dentro de un RegionProvider')
-  }
-  return context
+    <html lang="es">
+      <body>
+        <AuthProvider>
+          <LanguageProvider>
+            <RegionProvider>
+              <CartProvider>
+                {children}
+              </CartProvider>
+            </RegionProvider>
+          </LanguageProvider>
+        </AuthProvider>
+      </body>
+    </html>
+  );
 }
