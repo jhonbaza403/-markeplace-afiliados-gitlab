@@ -1,6 +1,8 @@
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
+import { LanguageProvider } from '@/context/LanguageContext';
+import { RegionProvider } from '@/context/RegionContext';
 
 export const metadata = {
   title: 'Credi Marketplace',
@@ -16,9 +18,13 @@ export default function RootLayout({
     <html lang="es">
       <body>
         <AuthProvider>
-          <CartProvider>
-            {children}
-          </CartProvider>
+          <LanguageProvider>
+            <RegionProvider>
+              <CartProvider>
+                {children}
+              </CartProvider>
+            </RegionProvider>
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>
