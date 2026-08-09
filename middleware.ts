@@ -1,24 +1,26 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { UserRole } from '@/types/users';
 
-export function middleware(req: NextRequest) {
-  // Aquí puedes implementar la lógica de validación de sesión con Supabase o tu token de autenticación
-  const res = NextResponse.next()
+/**
+ * Verifica si un usuario tiene un rol específico.
+ * Los administradores siempre tienen permiso.
+ */
+export function hasRequiredRole(userRoles: UserRole[], requiredRole: UserRole): boolean {
+  if (!userRoles || userRoles.length === 0) return false;
+  if (userRoles.includes('admin')) return true; // El admin todo lo puede
   
-  // Ejemplo básico de protección de ruta para el panel de administración o dashboard
-  const path = req.nextUrl.pathname
-
-  if (path.startsWith('/dashboard')) {
-    // Validación de sesión o redirección a login si no está autenticado
-    // const token = req.cookies.get('sb-access-token')
-    // if (!token) {
-    //   return NextResponse.redirect(new URL('/auth/login', req.url))
-    // }
-  }
-
-  return res
+  return userRoles.includes(requiredRole);
 }
 
-export const config = {
-  matcher: ['/dashboard/:path*', '/checkout/:path*'],
+/**
+ * Sanitización básica de strings para prevenir inyecciones XSS simples
+ * en inputs que luego se renderizarán.
+ */
+export function sanitizeInput(input: string): string {
+  if (!input) return '';
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
 }
