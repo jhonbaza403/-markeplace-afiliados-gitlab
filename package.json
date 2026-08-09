@@ -7,9 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:worker": "opennextjs-cloudflare",
-    "preview": "opennextjs-cloudflare && wrangler dev",
-    "deploy": "opennextjs-cloudflare && wrangler deploy"
+    "build:worker": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare preview && wrangler dev",
+    "deploy": "opennextjs-cloudflare deploy && wrangler deploy"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
