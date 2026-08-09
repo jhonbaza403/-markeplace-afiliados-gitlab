@@ -1,32 +1,44 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  // Simulamos la lectura del token de sesión (Supabase por defecto usa cookies específicas)
-  // En producción, aquí verificarías la cookie real de autenticación.
-  const authCookie = request.cookies.get('sb-access-token') || request.cookies.get('supabase-auth-token');
-  
-  const { pathname } = request.nextUrl;
+  const response = NextResponse.next();
 
-  // Proteger rutas de Dashboard y Admin
-  const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
+  const isProduction =
+    process.env.NODE_ENV === "production";
 
-  if (isProtectedRoute && !authCookie) {
-    // Si intenta acceder a una ruta protegida sin sesión, redirigir al login
-    return NextResponse.redirect(new URL('/login', request.url));
+  response.headers.set(
+    "X-Content-Type-Options",
+    "nosniff",
+  );
+
+  response.headers.set(
+    "Referrer-Policy",
+    "strict-origin-when-cross-origin",
+  );
+
+  response.headers.set(
+    "X-Frame-Options",
+    "SAMEORIGIN",
+  );
+
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
+
+  if (isProduction) {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains",
+    );
   }
 
-  // Redirigir si el usuario ya está logueado e intenta ir a login/register
-  const isAuthRoute = pathname === '/login' || pathname === '/register';
-  
-  if (isAuthRoute && authCookie) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  // Rutas en las que se ejecutará este middleware
-  matcher: ['/dashboard/:path*', '/admin/:path*', '/login', '/register'],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)",
+  ],
 };
