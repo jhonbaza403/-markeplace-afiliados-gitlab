@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Excluye Prisma del empaquetado interno de Webpack para Cloudflare Workers
+  serverExternalPackages: ["@prisma/client", "prisma"],
+
   reactStrictMode: true,
 
   poweredByHeader: false,
@@ -65,3 +68,5 @@ const nextConfig: NextConfig = {
     ];
   },
 };
+
+export default nextConfig;
