@@ -9,25 +9,26 @@ export default function Navbar() {
   const { user, profile, signOut } = useAuth()
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-md transition-colors">
+    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md transition-colors">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Navegación principal">
         <div className="flex justify-between h-16 items-center">
           {/* Logo y Enlaces Principales */}
           <div className="flex items-center space-x-6">
             <Link 
               href="/" 
-              className="text-xl font-extrabold tracking-tight text-primary hover:opacity-90 transition-opacity"
+              className="text-xl font-extrabold tracking-tight text-[var(--foreground)] hover:opacity-90 transition-opacity"
             >
-              Marketplace Afiliados
+              Credi <span className="text-blue-600">Marketplace</span>
             </Link>
-            <div className="hidden md:flex items-center space-x-5 text-sm font-medium text-muted-foreground">
-              <Link href="/products" className="hover:text-foreground transition-colors">
+            
+            <div className="hidden md:flex items-center space-x-5 text-sm font-medium text-[var(--muted)]">
+              <Link href="/products" className="hover:text-[var(--foreground)] transition-colors">
                 Productos
               </Link>
-              <Link href="/magazines" className="hover:text-foreground transition-colors">
+              <Link href="/magazines" className="hover:text-[var(--foreground)] transition-colors">
                 Revistas
               </Link>
-              <Link href="/jobs" className="hover:text-foreground transition-colors">
+              <Link href="/jobs" className="hover:text-[var(--foreground)] transition-colors">
                 Empleos
               </Link>
             </div>
@@ -40,7 +41,7 @@ export default function Navbar() {
 
             {user ? (
               <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-foreground hidden sm:inline">
+                <span className="text-sm font-medium text-[var(--foreground)] hidden sm:inline">
                   {profile?.nombre || user.email}
                 </span>
 
@@ -56,7 +57,7 @@ export default function Navbar() {
                 {profile?.rol === 'vendedor' && (
                   <Link
                     href="/dashboard/seller"
-                    className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-lg font-semibold hover:bg-primary/20 transition-colors"
+                    className="text-xs bg-blue-500/10 text-blue-600 border border-blue-500/20 px-2.5 py-1 rounded-lg font-semibold hover:bg-blue-500/20 transition-colors"
                   >
                     Panel Vendedor
                   </Link>
@@ -65,7 +66,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={signOut}
-                  className="rounded-xl bg-destructive text-destructive-foreground px-3 py-1.5 text-xs font-bold hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+                  className="rounded-xl bg-[var(--danger)] text-white px-3 py-1.5 text-xs font-bold hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
                 >
                   Salir
                 </button>
@@ -74,13 +75,13 @@ export default function Navbar() {
               <div className="flex items-center space-x-3">
                 <Link
                   href="/auth/login"
-                  className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                 >
                   Entrar
                 </Link>
                 <Link
                   href="/auth/register"
-                  className="text-sm font-semibold bg-primary text-primary-foreground px-4 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-sm"
+                  className="text-sm font-semibold bg-[var(--primary)] text-white px-4 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-sm"
                 >
                   Registrarse
                 </Link>
