@@ -1,45 +1,26 @@
 {
-  "name": "credi-marketplace",
+  "name": "marketplace-afiliados-gitlab",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "build:worker": "prisma generate && opennextjs-cloudflare build",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "typecheck": "tsc --noEmit"
+    "lint": "next lint"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^6.7.2",
-    "@google/generative-ai": "^0.24.0",
-    "@opennextjs/cloudflare": "^1.13.0",
-    "@prisma/client": "^6.19.0",
-    "@supabase/ssr": "^0.12.4",
-    "@supabase/supabase-js": "^2.110.9",
-    "autoprefixer": "^10.4.21",
-    "lucide-react": "^0.468.0",
-    "next": "15.5.23",
-    "postcss": "^8.5.6",
-    "react": "19.1.1",
-    "react-dom": "19.1.1",
-    "tailwindcss": "^3.4.17"
+    "next": "16.3.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.9",
-    "@types/react": "^19.1.9",
-    "@types/react-dom": "^19.1.7",
-    "prisma": "^6.19.0",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.40.0"
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
   }
 }
