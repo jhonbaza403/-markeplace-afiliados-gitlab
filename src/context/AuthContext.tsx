@@ -1,121 +1,97 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { User } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
 
-export interface Profile {
+// Tipado del perfil basado en tu esquema (adaptado a lo que lee el Navbar)
+export type UserProfile = {
   id: string
-  nombre?: string
-  full_name?: string
-  rol?: 'admin' | 'vendedor' | 'cliente' | 'afiliado' | string
-  role?: string
-  avatar_url?: string
-  updated_at?: string
-  [key: string]: unknown
+  email: string
+  nombre: string
+  rol: 'admin' | 'vendedor' | 'cliente' | 'empresa' | 'profesional' | string
 }
 
-interface AuthContextType {
+type AuthContextType = {
   user: User | null
-  profile: Profile | null
+  profile: UserProfile | null
   loading: boolean
   signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
-
-  // Función reutilizable para obtener la información del perfil del usuario
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (error) {
-        console.error('Error al obtener el perfil de Supabase:', error.message)
-        return null
-      }
-      return data as Profile | null
-    } catch (err) {
-      console.error('Error inesperado consultando perfil:', err)
-      return null
-    }
-  }
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
 
   useEffect(() => {
-    let mounted = true
-
-    // 1. Carga inicial de sesión
+    // 1. Obtener la sesión actual al cargar
     const initializeAuth = async () => {
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
-
-        if (error) {
-          console.error('Error al obtener la sesión actual:', error.message)
-        }
-
-        if (mounted) {
-          const currentUser = session?.user ?? null
-          setUser(currentUser)
-
-          if (currentUser) {
-            const userProfile = await fetchProfile(currentUser.id)
-            if (mounted) setProfile(userProfile)
-          }
-        }
-      } catch (err) {
-        console.error('Error inicializando autenticación:', err)
-      } finally {
-        if (mounted) setLoading(false)
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
+      
+      if (session?.user) {
+        await fetchProfile(session.user.id, session.user.email)
+      } else {
+        setLoading(false)
       }
     }
 
     initializeAuth()
 
-    // 2. Escuchar cambios de estado en tiempo real (login, logout, refresh de token)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!mounted) return
-
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
-
-      if (currentUser) {
-        const userProfile = await fetchProfile(currentUser.id)
-        if (mounted) setProfile(userProfile)
+    // 2. Escuchar cambios de estado en la autenticación (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user ?? null)
+      
+      if (session?.user) {
+        await fetchProfile(session.user.id, session.user.email)
       } else {
         setProfile(null)
+        setLoading(false)
       }
-
-      setLoading(false)
     })
 
     return () => {
-      mounted = false
       subscription.unsubscribe()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const signOut = async () => {
+  // Función auxiliar para obtener el perfil desde la tabla 'profiles'
+  const fetchProfile = async (userId: string, email: string | undefined) => {
     try {
-      await supabase.auth.signOut()
-    } catch (err) {
-      console.error('Error al cerrar sesión:', err)
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, role, email')
+        .eq('id', userId)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error)
+      }
+
+      if (data) {
+        setProfile({
+          id: userId,
+          email: data.email || email || '',
+          nombre: data.full_name,
+          rol: data.role === 'vendor' ? 'vendedor' : data.role, // Mapeo de DB a UI
+        })
+      }
+    } catch (error) {
+      console.error('Unexpected error fetching profile:', error)
     } finally {
-      setUser(null)
-      setProfile(null)
+      setLoading(false)
     }
+  }
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setProfile(null)
   }
 
   return (
@@ -125,10 +101,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   )
 }
 
-export const useAuth = (): AuthContextType => {
+// Hook personalizado para usar el contexto fácilmente en cualquier componente
+export const useAuth = () => {
   const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth debe ser utilizado dentro de un AuthProvider')
+  if (context === undefined) {
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider')
   }
   return context
 }
