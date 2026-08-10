@@ -1,50 +1,48 @@
 'use client'
 
-import type React from 'react'
-import { useRegion } from '@/context/RegionContext'
+import React, { useState } from 'react'
 
-interface RegionOption {
-  code: string
-  name: string
-  currency: string
-}
-
-const REGIONS: RegionOption[] = [
-  { code: 'GLOBAL', name: 'Global (Mundial)', currency: 'USD' },
-  { code: 'US', name: 'Estados Unidos', currency: 'USD' },
-  { code: 'EU', name: 'Europa', currency: 'EUR' },
-  { code: 'LATAM', name: 'Latinoamérica', currency: 'USD' },
-  { code: 'VEN', name: 'Venezuela', currency: 'USD' },
+const regions = [
+  { code: 'ES', label: 'España (EUR €)', currency: 'EUR' },
+  { code: 'US', label: 'Estados Unidos (USD $)', currency: 'USD' },
+  { code: 'LATAM', label: 'Latinoamérica (USD $)', currency: 'USD' },
 ]
 
-export const RegionSelector = () => {
-  const { selectedRegion, setSelectedRegion, setCurrency } = useRegion()
-
-  const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = REGIONS.find((r) => r.code === e.target.value)
-    if (selected) {
-      setSelectedRegion(selected.code)
-      setCurrency(selected.currency)
-    }
-  }
+export function RegionSelector() {
+  const [selectedRegion, setSelectedRegion] = useState(regions[0])
+  const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="flex items-center gap-2 bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm border border-gray-700">
-      <span className="text-gray-400">Región:</span>
-      <select
-        value={selectedRegion || 'GLOBAL'}
-        onChange={handleRegionChange}
-        className="bg-transparent text-white font-medium focus:outline-none cursor-pointer"
-        aria-label="Seleccionar región"
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center space-x-1.5 text-xs font-semibold bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 rounded-xl transition-colors cursor-pointer"
+        aria-label="Seleccionar región y moneda"
       >
-        {REGIONS.map((reg) => (
-          <option key={reg.code} value={reg.code} className="bg-gray-900 text-white">
-            {reg.name} ({reg.currency})
-          </option>
-        ))}
-      </select>
+        <span>{selectedRegion.code}</span>
+        <span className="text-[var(--muted)]">({selectedRegion.currency})</span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[var(--background)] border border-[var(--border)] shadow-lg py-1 z-50">
+          {regions.map((region) => (
+            <button
+              key={region.code}
+              type="button"
+              onClick={() => {
+                setSelectedRegion(region)
+                setIsOpen(false)
+              }}
+              className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors hover:bg-[var(--surface)] ${
+                selectedRegion.code === region.code ? 'text-blue-600 font-bold' : 'text-[var(--foreground)]'
+              }`}
+            >
+              {region.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
-
-export default RegionSelector
