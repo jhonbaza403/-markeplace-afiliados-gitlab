@@ -1,30 +1,25 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
-import { askGeminiAssistant } from '@/features/ai/gemini';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 
-export async function POST(request: Request) {
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+export async function POST(req: Request) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const { prompt, context } = body;
+    const { message } = await req.json();
 
-    if (!prompt || typeof prompt !== 'string') {
-      return NextResponse.json(
-        { error: 'El prompt es obligatorio y debe ser un texto válido.' },
-        { status: 400 }
-      );
+    if (!message) {
+      return NextResponse.json({ error: 'Mensaje requerido' }, { status: 400 });
     }
 
-    const reply = await askGeminiAssistant(prompt, context);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(message);
+    const response = await result.response;
     
-    return NextResponse.json({ reply }, { status: 200 });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Error interno del servidor';
-    
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ reply: response.text() });
+  } catch (error) {
+    console.error('Error en Gemini:', error);
+    return NextResponse.json({ error: 'Error del servidor' }, { status: 500 });
   }
 }
