@@ -1,8 +1,15 @@
-"scripts": {
-  "dev": "next dev",
-  "build": "prisma generate && opennextjs-cloudflare build",
-  "start": "next start",
-  "lint": "next lint",
-  "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-  "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
-}
+import type { OpenNextConfig } from "@opennextjs/aws/types/open-next.js";
+
+const config: OpenNextConfig = {
+  default: {
+    override: {
+      wrapper: "cloudflare-node",
+      converter: "edge",
+      incrementalCache: "dummy",
+      tagCache: "dummy",
+      queue: "dummy",
+    },
+  },
+};
+
+export default config;
