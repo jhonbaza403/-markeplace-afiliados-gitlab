@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import AffiliateCopyButton from "@/components/AffiliateCopyButton"; // Componente cliente para el botón interactivo
+import AffiliateCopyButton from "@/components/AffiliateCopyButton";
 
 export const metadata: Metadata = {
   title: "Catálogo de Productos",
@@ -74,7 +74,8 @@ export default async function ProductsPage() {
           /* Rejilla de Productos */
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {products.map((product) => {
-              const affiliateUrl = `https://credi-marketplace.com/products/detail?id=${product.id}&ref=afiliado`;
+              // Generamos la ruta base que el componente de cliente completará con el dominio real
+              const affiliatePath = `/products/detail?id=${product.id}&ref=afiliado`;
 
               return (
                 <div
@@ -100,16 +101,16 @@ export default async function ProductsPage() {
                       </span>
                     </div>
 
-                    {/* Componente interactivo para copiar el enlace de afiliado */}
+                    {/* Componente interactivo para copiar el enlace dinámico de afiliado */}
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
                         Tu enlace de afiliado:
                       </span>
-                      <AffiliateCopyButton affiliateUrl={affiliateUrl} />
+                      <AffiliateCopyButton affiliatePath={affiliatePath} />
                     </div>
 
                     <Link
-                      href={`/products/detail?id=${product.id}`}
+                      href={affiliatePath}
                       className="block w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-center text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
                     >
                       Ver Detalle
