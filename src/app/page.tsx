@@ -1,4 +1,43 @@
-{/* =========================================================
+import Link from 'next/link';
+
+export default function HomePage() {
+  return (
+    <>
+      <main className="min-h-screen bg-white">
+        {/* =========================================================
+            HERO SECTION
+        ========================================================== */}
+        <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950 text-white">
+          <div className="mx-auto max-w-7xl px-4 py-24 lg:px-8 lg:py-32">
+            <div className="mx-auto max-w-3xl text-center">
+              <span className="mb-4 inline-block rounded-full bg-blue-500/10 px-4 py-1.5 text-sm font-semibold text-blue-400 ring-1 ring-inset ring-blue-500/20">
+                Plataforma Comercial Global
+              </span>
+              <h1 className="text-4xl font-black tracking-tight sm:text-6xl">
+                Impulsa tus compras, ventas y servicios en <span className="text-blue-500">Credi Marketplace</span>
+              </h1>
+              <p className="mt-6 text-lg leading-8 text-slate-300">
+                Conectamos de forma segura a compradores, vendedores, profesionales y empresas en un ecosistema digital moderno y eficiente.
+              </p>
+              <div className="mt-10 flex flex-wrap justify-center gap-4">
+                <Link
+                  href="/explorar"
+                  className="rounded-xl bg-blue-600 px-8 py-4 font-bold text-white shadow-lg shadow-blue-900/30 transition hover:bg-blue-500"
+                >
+                  Explorar marketplace
+                </Link>
+                <Link
+                  href="/vender"
+                  className="rounded-xl border border-white/20 bg-white/10 px-8 py-4 font-bold text-white backdrop-blur transition hover:bg-white/15"
+                >
+                  Empieza a vender
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================
             CTA
         ========================================================== */}
         <section className="bg-slate-950 text-white">
