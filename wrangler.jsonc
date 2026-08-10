@@ -1,27 +1,58 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-
   "name": "credi-marketplace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Marketplace global de productos, servicios y oportunidades comerciales.",
+  "license": "UNLICENSED",
 
-  "main": ".open-next/worker.js",
-
-  "compatibility_date": "2026-07-27",
-
-  "compatibility_flags": [
-    "nodejs_compat",
-    "global_fetch_strictly_public"
-  ],
-
-  "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS"
+  "engines": {
+    "node": ">=20.19.0"
   },
 
-  "observability": {
-    "enabled": true
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+
+    "build:worker": "npx @opennextjs/cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+
+    "typecheck": "tsc --noEmit"
   },
 
-  "upload": {
-    "format": "modules"
-  }
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "6.7.2",
+    "@opennextjs/cloudflare": "1.13.0",
+    "@prisma/client": "6.19.0",
+    "@supabase/ssr": "0.12.4",
+    "@supabase/supabase-js": "2.110.9",
+    "lucide-react": "0.468.0",
+    "next": "15.5.23",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+
+  "devDependencies": {
+    "@types/node": "20.19.9",
+    "@types/react": "19.1.9",
+    "@types/react-dom": "19.1.7",
+    "autoprefixer": "10.4.21",
+    "postcss": "8.5.6",
+    "prisma": "6.19.0",
+    "tailwindcss": "3.4.17",
+    "typescript": "5.9.3",
+    "wrangler": "4.40.0"
+  },
+
+  "packageManager": "npm@11"
 }
