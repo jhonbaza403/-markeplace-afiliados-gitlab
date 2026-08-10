@@ -1,12 +1,18 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function AffiliateCopyButton({ affiliateUrl }: { affiliateUrl: string }) {
+export default function AffiliateCopyButton({ affiliatePath }: { affiliatePath: string }) {
+  const [fullUrl, setFullUrl] = useState('');
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    setFullUrl(`${window.location.origin}${affiliatePath}`);
+  }, [affiliatePath]);
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(affiliateUrl);
+    if (!fullUrl) return;
+    navigator.clipboard.writeText(fullUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -16,7 +22,7 @@ export default function AffiliateCopyButton({ affiliateUrl }: { affiliateUrl: st
       <input
         type="text"
         readOnly
-        value={affiliateUrl}
+        value={fullUrl || affiliatePath}
         className="w-full bg-muted border border-border rounded-lg px-2.5 py-1 text-[11px] text-muted-foreground select-all focus:outline-none"
       />
       <button
