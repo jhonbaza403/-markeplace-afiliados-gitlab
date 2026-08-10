@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import AffiliateCopyButton from "@/components/AffiliateCopyButton"; // Componente cliente para el botón interactivo
 
 export const metadata: Metadata = {
   title: "Catálogo de Productos",
   description: "Explora nuestro catálogo de productos disponibles para afiliarte y comercializar.",
 };
 
-// Revalidación opcional para Cloudflare Edge (ej. revalidar cada 60 segundos)
+// Optimización con ISR (Incremental Static Regeneration)
 export const revalidate = 60;
 
 interface Product {
@@ -72,39 +73,51 @@ export default async function ProductsPage() {
         ) : (
           /* Rejilla de Productos */
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="rounded-2xl bg-card text-card-foreground p-5 border border-border shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
-              >
-                <div>
-                  <h3 className="text-lg font-bold text-foreground line-clamp-1">
-                    {product.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                    {product.description || "Sin descripción disponible"}
-                  </p>
-                </div>
+            {products.map((product) => {
+              const affiliateUrl = `https://credi-marketplace.com/products/detail?id=${product.id}&ref=afiliado`;
 
-                <div className="mt-6 pt-4 border-t border-border">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xl font-extrabold text-primary">
-                      ${typeof product.price === "number" ? product.price.toFixed(2) : "0.00"}
-                    </span>
-                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                      Stock: {product.stock ?? 0}
-                    </span>
+              return (
+                <div
+                  key={product.id}
+                  className="rounded-2xl bg-card text-card-foreground p-5 border border-border shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
+                >
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground line-clamp-1">
+                      {product.title}
+                    </h3>
+                    <p className="mt-2 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                      {product.description || "Sin descripción disponible"}
+                    </p>
                   </div>
 
-                  <Link
-                    href={`/products/detail?id=${product.id}`}
-                    className="block w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-center text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
-                  >
-                    Ver Detalle y Afiliarme
-                  </Link>
+                  <div className="mt-6 pt-4 border-t border-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xl font-extrabold text-primary">
+                        ${typeof product.price === "number" ? product.price.toFixed(2) : "0.00"}
+                      </span>
+                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                        Stock: {product.stock ?? 0}
+                      </span>
+                    </div>
+
+                    {/* Componente interactivo para copiar el enlace de afiliado */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                        Tu enlace de afiliado:
+                      </span>
+                      <AffiliateCopyButton affiliateUrl={affiliateUrl} />
+                    </div>
+
+                    <Link
+                      href={`/products/detail?id=${product.id}`}
+                      className="block w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-center text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
+                    >
+                      Ver Detalle
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
