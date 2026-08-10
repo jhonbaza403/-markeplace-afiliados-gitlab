@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
+import Navbar from "@/components/Navbar";
 
 const SITE_NAME = "Credi Marketplace";
 const SITE_DESCRIPTION =
@@ -149,19 +151,24 @@ export default function RootLayout({
       </head>
 
       <body>
-        <a className="skip-link" href="#contenido-principal">
-          Saltar al contenido principal
-        </a>
+        <AuthProvider>
+          <a className="skip-link" href="#contenido-principal">
+            Saltar al contenido principal
+          </a>
 
-        <div id="app-shell" className="app-shell">
-          <main id="contenido-principal" className="app-main">
-            {children}
-          </main>
-        </div>
+          <div id="app-shell" className="app-shell flex flex-col min-h-screen">
+            {/* Barra de navegación global con autenticación y selector de región */}
+            <Navbar />
 
-        <div id="modal-root" />
+            <main id="contenido-principal" className="app-main flex-1">
+              {children}
+            </main>
+          </div>
 
-        <div id="toast-root" aria-live="polite" aria-atomic="true" />
+          <div id="modal-root" />
+
+          <div id="toast-root" aria-live="polite" aria-atomic="true" />
+        </AuthProvider>
       </body>
     </html>
   );
