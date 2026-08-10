@@ -1,56 +1,99 @@
-# Dependencias
-node_modules/
-.pnpm-store/
+# =========================================================
+# DEPENDENCIES
+# =========================================================
 
-# Next.js y Salidas de Compilación
+node_modules/
+
+# =========================================================
+# NEXT.JS
+# =========================================================
+
 .next/
 out/
-build/
-dist/
+.vercel/
 
-# OpenNext & Cloudflare Workers
+# =========================================================
+# OPENNEXT / CLOUDFLARE
+# =========================================================
+
 .open-next/
 .wrangler/
-
-# Variables de Entorno y Secretos Locales
-.env
-.env*.local
-.env.development
-.env.production
 .dev.vars
 
-# Prisma y Bases de Datos Locales
-*.db
-*.db-journal
-dev.db
-dev.db-journal
+# =========================================================
+# ENVIRONMENT / SECRETS
+# =========================================================
 
-# TypeScript, Turbo y Cachés
+.env
+.env.*
+!.env.example
+
+# Explicit local environment files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =========================================================
+# TYPESCRIPT
+# =========================================================
+
 *.tsbuildinfo
-.turbo/
+next-env.d.ts
 
-# Registros (Logs)
-logs
-*.log
+# =========================================================
+# DEBUG / LOGS
+# =========================================================
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+bun.lockb
+lerna-debug.log*
 
-# Pruebas y Cobertura
+*.log
+
+# =========================================================
+# OS
+# =========================================================
+
+.DS_Store
+Thumbs.db
+
+# =========================================================
+# IDE
+# =========================================================
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+.idea/
+
+# =========================================================
+# TEST / COVERAGE
+# =========================================================
+
 coverage/
 .nyc_output/
 
-# Sistema Operativo
-.DS_Store
-Thumbs.db
-*.pem
+# =========================================================
+# BUILD OUTPUT
+# =========================================================
 
-# IDEs y Editores
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.idea/
-*.sw?
+dist/
+build/
+
+# =========================================================
+# CLOUDFLARE GENERATED
+# =========================================================
+
+cloudflare-env.d.ts
+
+# =========================================================
+# EXTRA (Bun / Prisma)
+# =========================================================
+.bun/
