@@ -105,7 +105,7 @@ export default function ShareModal({
         <h3 className="text-xl font-bold text-foreground mb-2">Compartir y Viralizar 🚀</h3>
         <p className="text-sm text-muted-foreground mb-6 line-clamp-2">{title}</p>
 
-        {hasNativeShare ? (
+        {hasNativeShare && (
           <button
             type="button"
             onClick={handleNativeShare}
@@ -114,22 +114,23 @@ export default function ShareModal({
             <i className="fa-solid fa-share-nodes"></i>
             Compartir en mis Apps (Instagram, TikTok...)
           </button>
-        ) : (
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            {shareLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex flex-col items-center justify-center gap-2 rounded-xl p-3 text-white transition-transform hover:scale-105 shadow-sm ${link.color}`}
-                title={`Compartir en ${link.name}`}
-              >
-                <i className={`fa-brands ${link.icon} text-2xl`}></i>
-              </a>
-            ))}
-          </div>
         )}
+
+        {/* Cuadrícula de accesos directos */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          {shareLinks.map((link) => (
+            <a
+              key={link.name}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex flex-col items-center justify-center gap-2 rounded-xl p-3 text-white transition-transform hover:scale-105 shadow-sm ${link.color}`}
+              title={`Compartir en ${link.name}`}
+            >
+              <i className={`fa-brands ${link.icon} text-2xl`}></i>
+            </a>
+          ))}
+        </div>
 
         {/* Input con botón de copiar */}
         <div className="relative">
