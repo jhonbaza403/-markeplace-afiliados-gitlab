@@ -9,10 +9,10 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // 2. Configurar el cliente de Supabase para el middleware (refresco de cookies)
+  // 2. Configurar el cliente de Supabase para el middleware (soporta publishable_key y anon_key)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)!,
     {
       cookies: {
         getAll() {
@@ -61,4 +61,4 @@ export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)",
   ],
-};
+};;
