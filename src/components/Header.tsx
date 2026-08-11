@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
-import { useLanguage } from "@/context/LanguageContext";
-import Link from "next/link";
+import { useLanguage } from '@/context/LanguageContext'
+import Link from 'next/link'
 
 export default function Header() {
-  const { lang, setLang, t } = useLanguage();
+  const { lang, setLang, t } = useLanguage()
 
   return (
     <header className="bg-slate-900 text-white text-xs py-2 px-4 sticky top-0 z-50 shadow-md">
@@ -16,7 +16,7 @@ export default function Header() {
           </Link>
           <span className="hidden md:inline text-slate-600">|</span>
           <span className="flex items-center gap-1 font-semibold text-emerald-400">
-            <i className="fa-solid fa-earth-americas"></i> {t("subtitle") || "Plataforma Global"}
+            <i className="fa-solid fa-earth-americas"></i> {t('subtitle') || 'Plataforma Global'}
           </span>
           <span className="hidden md:inline text-slate-600">|</span>
           <nav className="hidden lg:flex items-center gap-4 text-slate-300">
@@ -42,7 +42,8 @@ export default function Header() {
             <i className="fa-solid fa-globe text-emerald-400 mr-2"></i>
             <select
               value={lang}
-              onChange={(e) => setLang(e.target.value as "es" | "en" | "pt" | "fr")}
+              aria-label="Seleccionar idioma"
+              onChange={(e) => setLang(e.target.value as 'es' | 'en' | 'pt' | 'fr')}
               className="bg-transparent text-white focus:outline-none cursor-pointer"
             >
               <option value="es" className="bg-slate-800">Español</option>
@@ -54,5 +55,5 @@ export default function Header() {
         </div>
       </div>
     </header>
-  );
+  )
 }
