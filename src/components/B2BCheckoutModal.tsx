@@ -1,18 +1,23 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 interface B2BCheckoutProps {
+  productId: string
   productName: string
+  supplierId?: string
   wholesalePrice: number
   minQuantity: number
-  binancePayId: string // Pay ID de Binance de la tienda/plataforma
-  usdtWalletAddress: string // Dirección USDT TRC20
+  binancePayId: string
+  usdtWalletAddress: string
   onClose: () => void
 }
 
 export default function B2BCheckoutModal({
+  productId,
   productName,
+  supplierId,
   wholesalePrice,
   minQuantity,
   binancePayId,
@@ -20,7 +25,7 @@ export default function B2BCheckoutModal({
   onClose
 }: B2BCheckoutProps) {
   const [quantity, setQuantity] = useState(minQuantity)
-  const [paymentMethod, setPaymentMethod] = useState<'binance' | 'usdt_trc20'>('binance')
+  const [paymentMethod, setPaymentMethod] = useState<'binance_pay' | 'usdt_trc20'>('binance_pay')
   const [txHash, setTxHash] = useState('')
   const [isCopied, setIsCopied] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -36,13 +41,42 @@ export default function B2BCheckoutModal({
   const handleConfirmPayment = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
-    // Aquí se registra la orden B2B en Supabase / Backend
-    setTimeout(() => {
-      alert('¡Pago registrado! El proveedor verificará la transacción en Binance.')
-      setIsSubmitting(false)
+
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        alert('Debes iniciar sesión para procesar una orden mayorista.')
+        setIsSubmitting(false)
+        return
+      }
+
+      const { error } = await supabase.from('b2b_orders').insert([
+        {
+          user_id: user.id,
+          product_id: productId,
+          product_title: productName,
+          supplier_id: supplierId || null,
+          quantity: quantity,
+          unit_price_usd: wholesalePrice,
+          total_usd: totalUSD,
+          payment_method: paymentMethod,
+          binance_tx_id: txHash,
+          status: 'verifying'
+        }
+      ])
+
+      if (error) throw error
+
+      alert('¡Orden B2B registrada con éxito! El proveedor verificará tu pago en Binance.')
       onClose()
-    }, 1500)
+    } catch (err: any) {
+      console.error('Error al registrar la orden B2B:', err)
+      alert('Hubo un error al registrar la orden. Por favor intenta de nuevo.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -55,7 +89,7 @@ export default function B2BCheckoutModal({
             </span>
             <h2 className="text-lg font-bold text-foreground mt-1">{productName}</h2>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground font-bold text-xl">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground font-bold text-xl cursor-pointer">
             ✕
           </button>
         </div>
@@ -70,11 +104,11 @@ export default function B2BCheckoutModal({
             min={minQuantity}
             value={quantity}
             onChange={(e) => setQuantity(Math.max(minQuantity, parseInt(e.target.value) || minQuantity))}
-            className="w-full bg-muted/50 border border-border rounded-xl px-4 py-2 text-foreground font-bold focus:outline-none focus:border-emerald-500"
+            className="w-full bg-muted/50 border border-border rounded-xl px-4 py-2 text-foreground font-bold focus:outline-none focus:border-amber-500"
           />
           <div className="flex justify-between text-xs text-muted-foreground pt-1">
             <span>Precio Mayorista: <strong>${wholesalePrice.toFixed(2)} USDT / unid.</strong></span>
-            <span>Total a Pagar: <strong className="text-emerald-500 text-sm">${totalUSD.toFixed(2)} USDT</strong></span>
+            <span>Total a Pagar: <strong className="text-amber-500 text-sm">${totalUSD.toFixed(2)} USDT</strong></span>
           </div>
         </div>
 
@@ -84,9 +118,9 @@ export default function B2BCheckoutModal({
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => setPaymentMethod('binance')}
-              className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition ${
-                paymentMethod === 'binance' 
+              onClick={() => setPaymentMethod('binance_pay')}
+              className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition cursor-pointer ${
+                paymentMethod === 'binance_pay' 
                   ? 'border-amber-500 bg-amber-500/10 text-amber-500 font-bold' 
                   : 'border-border bg-muted/30 text-muted-foreground'
               }`}
@@ -98,9 +132,9 @@ export default function B2BCheckoutModal({
             <button
               type="button"
               onClick={() => setPaymentMethod('usdt_trc20')}
-              className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition ${
+              className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition cursor-pointer ${
                 paymentMethod === 'usdt_trc20' 
-                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500 font-bold' 
+                  ? 'border-amber-500 bg-amber-500/10 text-amber-500 font-bold' 
                   : 'border-border bg-muted/30 text-muted-foreground'
               }`}
             >
@@ -110,9 +144,9 @@ export default function B2BCheckoutModal({
           </div>
         </div>
 
-        {/* Detalle de Pago según la opción seleccionada */}
+        {/* Detalle de Pago */}
         <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-3">
-          {paymentMethod === 'binance' ? (
+          {paymentMethod === 'binance_pay' ? (
             <>
               <p className="text-xs text-muted-foreground">Paga desde la App de Binance usando el Pay ID:</p>
               <div className="flex items-center justify-between bg-card p-3 rounded-lg border border-border">
@@ -120,7 +154,7 @@ export default function B2BCheckoutModal({
                 <button
                   type="button"
                   onClick={() => handleCopy(binancePayId)}
-                  className="text-xs font-bold text-amber-500 hover:underline"
+                  className="text-xs font-bold text-amber-500 hover:underline cursor-pointer"
                 >
                   {isCopied ? '¡Copiado!' : 'Copiar Pay ID'}
                 </button>
@@ -134,7 +168,7 @@ export default function B2BCheckoutModal({
                 <button
                   type="button"
                   onClick={() => handleCopy(usdtWalletAddress)}
-                  className="text-xs font-bold text-emerald-500 hover:underline shrink-0"
+                  className="text-xs font-bold text-amber-500 hover:underline shrink-0 cursor-pointer"
                 >
                   {isCopied ? '¡Copiado!' : 'Copiar Dirección'}
                 </button>
@@ -155,7 +189,7 @@ export default function B2BCheckoutModal({
               placeholder="Ej: 218391029381029"
               value={txHash}
               onChange={(e) => setTxHash(e.target.value)}
-              className="w-full bg-muted/50 border border-border rounded-xl px-4 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
+              className="w-full bg-muted/50 border border-border rounded-xl px-4 py-2 text-xs text-foreground focus:outline-none focus:border-amber-500"
             />
           </div>
 
