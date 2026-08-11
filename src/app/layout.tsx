@@ -1,32 +1,29 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { AuthProvider } from '@/context/AuthContext'
-import { RegionProvider } from '@/context/RegionContext'
-import Navbar from '@/components/Navbar'
+'use client';
 
-const inter = Inter({ subsets: ['latin'] })
+import React from 'react';
+import { useRegion } from '@/context/RegionContext';
 
-export const metadata: Metadata = {
-  title: 'Marketplace Afiliados',
-  description: 'Plataforma de afiliados y marketplace',
-}
+export const RegionSelector: React.FC = () => {
+  const { selectedRegion, setSelectedRegion, availableRegions } = useRegion();
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
   return (
-    <html lang="es">
-      <body className={inter.className}>
-        <AuthProvider>
-          <RegionProvider>
-            <Navbar />
-            <main>{children}</main>
-          </RegionProvider>
-        </AuthProvider>
-      </body>
-    </html>
-  )
-}
+    <div className="relative inline-block text-left">
+      <select
+        value={selectedRegion.id}
+        onChange={(e) => {
+          const region = availableRegions.find((r) => r.id === e.target.value);
+          if (region) setSelectedRegion(region);
+        }}
+        className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+      >
+        {availableRegions.map((region) => (
+          <option key={region.id} value={region.id}>
+            {region.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
+export default RegionSelector;
