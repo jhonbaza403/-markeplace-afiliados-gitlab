@@ -26,3 +26,5 @@ export const useRegion = (): RegionContextType => {
   }
   return context
 }
+
+export default RegionContext
