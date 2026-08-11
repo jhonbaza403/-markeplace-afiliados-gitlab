@@ -2,45 +2,29 @@ import type { Metadata } from "next";
 import React from "react";
 import { ProductCard } from "@/features/marketplace/components/ProductCard";
 import { Product } from "@/types/product";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Catálogo de Productos",
   description: "Explora una amplia variedad de productos y servicios de nuestros vendedores verificados.",
 };
 
-// Datos estáticos con fechas fijas para evitar desajustes de hidratación (Hydration Mismatch)
-const mockProducts: Product[] = [
-  {
-    id: "1",
-    store_id: "store-1",
-    title: "Smartphone de Última Generación",
-    slug: "smartphone-ultima-generacion",
-    description: "Pantalla AMOLED de 6.7 pulgadas, 256GB de almacenamiento y cámara dual.",
-    price: 499.99,
-    stock: 15,
-    images: [
-      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=500&auto=format&fit=crop",
-    ],
-    is_active: true,
-    created_at: "2026-01-01T00:00:00.000Z",
-  },
-  {
-    id: "2",
-    store_id: "store-2",
-    title: "Laptop Profesional Ultradelgada",
-    slug: "laptop-profesional-ultradelgada",
-    description: "Procesador de alta velocidad, 16GB RAM y disco de estado sólido de 512GB.",
-    price: 899.5,
-    stock: 8,
-    images: [
-      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=500&auto=format&fit=crop",
-    ],
-    is_active: true,
-    created_at: "2026-01-01T00:00:00.000Z",
-  },
-];
+export default async function MarketplacePage() {
+  const supabase = await createClient();
 
-export default function MarketplacePage() {
+  // Consultar productos activos directamente desde Supabase
+  const { data: products, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error al cargar productos desde Supabase:", error.message);
+  }
+
+  const productList: Product[] = products || [];
+
   return (
     <div className="min-h-screen bg-background py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -54,11 +38,19 @@ export default function MarketplacePage() {
         </header>
 
         <section aria-label="Listado de Productos">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {mockProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {productList.length === 0 ? (
+            <div className="text-center py-12 rounded-xl border border-dashed border-border">
+              <p className="text-muted-foreground text-sm">
+                No hay productos disponibles en este momento.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {productList.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>
