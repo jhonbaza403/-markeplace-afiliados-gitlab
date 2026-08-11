@@ -6,7 +6,8 @@ export async function createClient() {
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    // Acepta tanto la clave anon como la nueva publishable key
+    (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)!,
     {
       cookies: {
         getAll() {
@@ -19,7 +20,7 @@ export async function createClient() {
             );
           } catch {
             // El método setAll fue llamado desde un Server Component.
-            // Esto se puede ignorar si tienes un middleware refrescando sesiones.
+            // Esto se ignora sin problemas si usas un middleware refrescando la sesión.
           }
         },
       },
