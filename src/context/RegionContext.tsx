@@ -1,32 +1,51 @@
-'use client'
+'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+
+// Define el tipo de dato de la región (ajústalo según tus necesidades)
+export interface Region {
+  id: string;
+  name: string;
+  code: string;
+}
+
+// Regiones por defecto de ejemplo
+const DEFAULT_REGIONS: Region[] = [
+  { id: '1', name: 'Global', code: 'GLOBAL' },
+  { id: '2', name: 'América Latina', code: 'LATAM' },
+  { id: '3', name: 'Norteamérica', code: 'NA' },
+  { id: '4', name: 'Europa', code: 'EU' },
+];
 
 interface RegionContextType {
-  region: string
-  setRegion: (region: string) => void
+  selectedRegion: Region;
+  setSelectedRegion: (region: Region) => void;
+  availableRegions: Region[];
 }
 
-const RegionContext = createContext<RegionContextType | undefined>(undefined)
+const RegionContext = createContext<RegionContextType | undefined>(undefined);
 
-// Exportación requerida por src/app/layout.tsx
-export const RegionProvider = ({ children }: { children: ReactNode }) => {
-  const [region, setRegion] = useState<string>('default')
+export const RegionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [selectedRegion, setSelectedRegion] = useState<Region>(DEFAULT_REGIONS[0]);
 
   return (
-    <RegionContext.Provider value={{ region, setRegion }}>
+    <RegionContext.Provider
+      value={{
+        selectedRegion,
+        setSelectedRegion,
+        availableRegions: DEFAULT_REGIONS,
+      }}
+    >
       {children}
     </RegionContext.Provider>
-  )
-}
+  );
+};
 
-// Hook personalizado
+// Custom Hook exportado explícitamente como 'useRegion'
 export const useRegion = (): RegionContextType => {
-  const context = useContext(RegionContext)
+  const context = useContext(RegionContext);
   if (!context) {
-    throw new Error('useRegion debe ser utilizado dentro de un RegionProvider')
+    throw new Error('useRegion debe ser utilizado dentro de un RegionProvider');
   }
-  return context
-}
-
-export default RegionContext
+  return context;
+};
