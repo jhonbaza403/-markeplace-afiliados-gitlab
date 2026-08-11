@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert([
-        {
+       {
           customer_id: customerId,
           total_amount: finalTotalAmount,
           region: region,
