@@ -8,6 +8,10 @@ import { RegionSelector } from '@/components/marketplace/RegionSelector'
 export default function Navbar() {
   const { user, profile, signOut } = useAuth()
 
+  // Soporte para variaciones de nombres de campo (role / rol, full_name / nombre)
+  const userRole = profile?.role || profile?.rol
+  const displayName = profile?.full_name || profile?.nombre || user?.email
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md transition-colors">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Navegación principal">
@@ -42,10 +46,10 @@ export default function Navbar() {
             {user ? (
               <div className="flex items-center space-x-3">
                 <span className="text-sm font-medium text-[var(--foreground)] hidden sm:inline">
-                  {profile?.nombre || user.email}
+                  {displayName}
                 </span>
 
-                {profile?.rol === 'admin' && (
+                {userRole === 'admin' && (
                   <Link
                     href="/dashboard/admin"
                     className="text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 px-2.5 py-1 rounded-lg font-semibold hover:bg-purple-500/20 transition-colors"
@@ -54,12 +58,21 @@ export default function Navbar() {
                   </Link>
                 )}
 
-                {profile?.rol === 'vendedor' && (
+                {(userRole === 'vendedor' || userRole === 'vendor') && (
                   <Link
                     href="/dashboard/seller"
                     className="text-xs bg-blue-500/10 text-blue-600 border border-blue-500/20 px-2.5 py-1 rounded-lg font-semibold hover:bg-blue-500/20 transition-colors"
                   >
                     Panel Vendedor
+                  </Link>
+                )}
+
+                {(userRole === 'affiliate' || userRole === 'afiliado') && (
+                  <Link
+                    href="/dashboard/affiliate"
+                    className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-semibold hover:bg-emerald-500/20 transition-colors"
+                  >
+                    Panel Afiliado
                   </Link>
                 )}
 
