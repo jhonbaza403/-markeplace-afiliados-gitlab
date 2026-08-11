@@ -1,71 +1,106 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import B2BCheckoutModal from '@/components/B2BCheckoutModal'
 import Link from 'next/link'
 
+interface B2BProduct {
+  id: string
+  title: string
+  description: string
+  moq: number
+  unit_price_usdt: number
+  stock_available: number
+  category: string
+  image_url: string
+  binance_pay_id?: string
+  usdt_wallet_address?: string
+  supplier_id: string
+}
+
 export default function B2BProductDetailPage({ params }: { params: { id: string } }) {
+  const [product, setProduct] = useState<B2BProduct | null>(null)
+  const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // Datos de ejemplo (sustituir con llamada a Supabase mediante params.id)
-  const product = {
-    id: params.id,
-    title: 'Lote de 50 Auriculares Bluetooth TWS i12',
-    category: 'Electrónica',
-    supplierName: 'Importadora Tech Global C.A.',
-    wholesalePriceUSD: 3.50,
-    regularPriceUSD: 8.00,
-    minOrderQuantity: 10,
-    stockAvailable: 500,
-    imageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&q=80',
-    binancePayId: '218391029',
-    usdtWalletAddress: 'TYDx129381092830192830192830',
-    description: 'Auriculares inalámbricos con cancelador de ruido ligero y caja de carga rápida. Ideal para tiendas de retail y revendedores. Envío asegurado a nivel nacional.'
+  useEffect(() => {
+    async function fetchProduct() {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('b2b_products')
+        .select('*')
+        .eq('id', params.id)
+        .single()
+
+      if (error) {
+        console.error('Error al cargar el producto B2B:', error)
+      } else {
+        setProduct(data)
+      }
+      setLoading(false)
+    }
+
+    fetchProduct()
+  }, [params.id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <p className="text-sm font-semibold animate-pulse">Cargando detalles del lote mayorista...</p>
+      </div>
+    )
   }
 
-  const discount = Math.round(((product.regularPriceUSD - product.wholesalePriceUSD) / product.regularPriceUSD) * 100)
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center space-y-4">
+        <p className="text-base font-bold text-destructive">Producto mayorista no encontrado.</p>
+        <Link href="/b2b" className="text-xs text-primary font-semibold hover:underline">
+          ← Volver al Catálogo Mayorista
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground py-10 px-4">
       <div className="max-w-5xl mx-auto space-y-6">
         <Link href="/b2b" className="text-xs text-muted-foreground hover:text-foreground font-semibold flex items-center gap-1">
-          ← Volver al Catalogo Mayorista
+          ← Volver al Catálogo Mayorista
         </Link>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-card border border-border p-6 rounded-3xl shadow-xl">
           <div className="relative rounded-2xl overflow-hidden bg-muted h-80 md:h-auto">
-            <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" />
+            <img src={product.image_url} alt={product.title} className="w-full h-full object-cover" />
             <span className="absolute top-4 left-4 bg-amber-500 text-slate-950 font-black text-xs uppercase px-3 py-1 rounded-full shadow">
-              -{discount}% Mayorista
+              Mayorista B2B
             </span>
           </div>
 
           <div className="space-y-5 flex flex-col justify-between">
             <div className="space-y-3">
               <span className="text-xs font-bold text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
-                {product.category}
+                {product.category || 'General'}
               </span>
               <h1 className="text-2xl font-black text-foreground">{product.title}</h1>
-              <p className="text-xs text-muted-foreground">
-                Proveedor Verificado: <strong className="text-foreground">{product.supplierName}</strong>
-              </p>
               
               <div className="p-4 bg-muted/40 rounded-2xl border border-border space-y-2">
                 <div className="flex justify-between items-baseline">
                   <span className="text-xs text-muted-foreground">Precio Mayorista (USDT):</span>
-                  <span className="text-2xl font-black text-amber-500">${product.wholesalePriceUSD.toFixed(2)} USDT</span>
-                </div>
-                <div className="flex justify-between items-baseline text-xs text-muted-foreground">
-                  <span>Precio Ref. al Detal:</span>
-                  <span className="line-through">${product.regularPriceUSD.toFixed(2)} USD</span>
+                  <span className="text-2xl font-black text-amber-500">${product.unit_price_usdt.toFixed(2)} USDT</span>
                 </div>
                 <div className="pt-2 border-t border-border flex justify-between text-xs font-bold text-foreground">
                   <span>Pedido Mínimo (MOQ):</span>
-                  <span>{product.minOrderQuantity} unidades</span>
+                  <span>{product.moq} unidades</span>
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Stock Disponible:</span>
+                  <span className="text-emerald-500 font-bold">{product.stock_available} unidades</span>
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{product.description || 'Sin descripción detallada.'}</p>
             </div>
 
             <button
@@ -82,10 +117,10 @@ export default function B2BProductDetailPage({ params }: { params: { id: string 
       {isModalOpen && (
         <B2BCheckoutModal
           productName={product.title}
-          wholesalePrice={product.wholesalePriceUSD}
-          minQuantity={product.minOrderQuantity}
-          binancePayId={product.binancePayId}
-          usdtWalletAddress={product.usdtWalletAddress}
+          wholesalePrice={product.unit_price_usdt}
+          minQuantity={product.moq}
+          binancePayId={product.binance_pay_id || '218391029'}
+          usdtWalletAddress={product.usdt_wallet_address || 'TYDx129381092830192830192830'}
           onClose={() => setIsModalOpen(false)}
         />
       )}
