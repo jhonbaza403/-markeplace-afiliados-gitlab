@@ -1,128 +1,156 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import AffiliateCopyButton from "@/components/AffiliateCopyButton";
+'use client'
 
-export const metadata: Metadata = {
-  title: "Catálogo de Productos",
-  description: "Explora nuestro catálogo de productos disponibles para afiliarte y comercializar.",
-};
-
-// Optimización con ISR (Incremental Static Regeneration)
-export const revalidate = 60;
+import React, { useState, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import Image from 'next/image'
+import Link from 'next/link'
 
 interface Product {
-  id: string;
-  title: string;
-  description?: string;
-  price: number;
-  stock: number;
-  store_id: string;
+  id: string
+  title: string
+  description: string
+  price: number
+  images: string[]
+  stock: number
 }
 
-async function getProducts(): Promise<Product[]> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("is_active", true);
+function ProductDetailContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
-    if (error) {
-      console.error("Error consultando productos en Supabase:", error.message);
-      return [];
+  const productId = searchParams.get('id')
+  const refCode = searchParams.get('ref')
+
+  const [product, setProduct] = useState<Product | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchProduct() {
+      if (!productId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single()
+
+        if (error) throw error
+        setProduct(data)
+      } catch (err: unknown) {
+        console.error('Error al cargar producto:', err)
+        if (err instanceof Error) {
+          setError(err.message)
+        } else {
+          setError('No se pudo encontrar el producto solicitado.')
+        }
+      } finally {
+        setLoading(false)
+      }
     }
 
-    return data || [];
-  } catch (error) {
-    console.error("Error al cargar productos:", error);
-    return [];
-  }
-}
+    fetchProduct()
+  }, [productId])
 
-export default async function ProductsPage() {
-  const products = await getProducts();
+  const handleBuyNow = () => {
+    if (!product) return
+    const checkoutUrl = refCode
+      ? `/checkout?product_id=${product.id}&ref=${refCode}`
+      : `/checkout?product_id=${product.id}`
+
+    router.push(checkoutUrl)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center text-sm text-gray-500 animate-pulse">
+        Cargando detalles del producto...
+      </div>
+    )
+  }
+
+  if (error || !product) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-16 text-center">
+        <h2 className="text-xl font-bold text-gray-800">Producto no encontrado</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          El producto que intentas ver no existe o no se proporcionó un ID válido.
+        </p>
+        <Link
+          href="/products"
+          className="mt-6 inline-block rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+        >
+          Volver al Catálogo
+        </Link>
+      </div>
+    )
+  }
+
+  const mainImage =
+    product.images?.[0] ||
+    'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=500&auto=format&fit=crop'
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Cabecera del Catálogo */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-              Catálogo de Productos
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Selecciona productos para promocionar y obtener comisiones como afiliado.
-            </p>
-          </div>
-          <Link
-            href="/dashboard/affiliate"
-            className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
-          >
-            Ver Panel de Afiliado
-          </Link>
+    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+        {/* Imagen principal */}
+        <div className="relative aspect-square overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 shadow-sm">
+          <Image
+            src={mainImage}
+            alt={product.title}
+            fill
+            className="object-cover"
+            priority
+          />
         </div>
 
-        {/* Estado Vacío */}
-        {products.length === 0 ? (
-          <div className="bg-card text-card-foreground rounded-2xl p-12 text-center border border-border shadow-sm">
-            <p className="text-muted-foreground text-base">
-              No hay productos activos disponibles en este momento.
+        {/* Detalles e Información */}
+        <div className="flex flex-col justify-between space-y-6">
+          <div>
+            {refCode && (
+              <span className="inline-block rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200 mb-3">
+                ✓ Enlace de afiliado activo: {refCode}
+              </span>
+            )}
+            <h1 className="text-3xl font-extrabold text-gray-900">{product.title}</h1>
+            <p className="mt-4 text-3xl font-black text-blue-600">${product.price.toFixed(2)}</p>
+            <p className="mt-4 text-sm leading-relaxed text-gray-600">
+              {product.description || 'Sin descripción disponible.'}
             </p>
           </div>
-        ) : (
-          /* Rejilla de Productos */
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {products.map((product) => {
-              // Ruta dinámica del producto para el enlace de afiliado
-              const affiliatePath = `/products/detail?id=${product.id}&ref=afiliado`;
 
-              return (
-                <div
-                  key={product.id}
-                  className="rounded-2xl bg-card text-card-foreground p-5 border border-border shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
-                >
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground line-clamp-1">
-                      {product.title}
-                    </h3>
-                    <p className="mt-2 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                      {product.description || "Sin descripción disponible"}
-                    </p>
-                  </div>
+          <div className="space-y-4 border-t border-gray-100 pt-6">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Disponibilidad:</span>
+              <span className="font-bold text-emerald-600">
+                {product.stock > 0 ? `${product.stock} unidades disponibles` : 'Agotado'}
+              </span>
+            </div>
 
-                  <div className="mt-6 pt-4 border-t border-border space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-extrabold text-primary">
-                        ${typeof product.price === "number" ? product.price.toFixed(2) : "0.00"}
-                      </span>
-                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                        Stock: {product.stock ?? 0}
-                      </span>
-                    </div>
-
-                    {/* Componente interactivo para copiar el enlace dinámico de afiliado */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Tu enlace de afiliado:
-                      </span>
-                      <AffiliateCopyButton affiliatePath={affiliatePath} />
-                    </div>
-
-                    <Link
-                      href={affiliatePath}
-                      className="block w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-center text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
-                    >
-                      Ver Detalle
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
+            <button
+              onClick={handleBuyNow}
+              disabled={product.stock <= 0}
+              className="w-full rounded-xl bg-blue-600 py-4 font-bold text-white shadow-lg shadow-blue-900/10 transition hover:bg-blue-500 disabled:opacity-50 cursor-pointer"
+            >
+              Comprar Ahora
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
-  );
+  )
+}
+
+export default function ProductDetailPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-12">Cargando producto...</div>}>
+      <ProductDetailContent />
+    </Suspense>
+  )
 }
