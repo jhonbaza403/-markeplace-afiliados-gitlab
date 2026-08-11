@@ -1,142 +1,119 @@
-'use client'
+import type { Metadata } from "next";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import { notFound } from "next/navigation";
 
-import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import UserReputationBadge from '@/components/UserReputationBadge'
-import RatingModal from '@/components/RatingModal'
+export const revalidate = 60;
 
-interface Product {
-  id: string
-  title: string
-  description?: string
-  price: number
-  stock: number
-  store_id: string
-  store?: {
-    store_name: string
-    vendor_id: string
-  }
+interface Props {
+  searchParams: Promise<{ id?: string; ref?: string }>;
 }
 
-function ProductDetailContent() {
-  const searchParams = useSearchParams()
-  const id = searchParams.get('id')
-  
-  const [product, setProduct] = useState<Product | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [isRatingOpen, setIsRatingOpen] = useState(false)
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { id } = await searchParams;
+  if (!id) return { title: "Producto no encontrado" };
 
-  useEffect(() => {
-    if (id) {
-      fetchProductDetail()
-    } else {
-      setLoading(false)
-    }
-  }, [id])
+  const { data: product } = await supabase
+    .from("products")
+    .select("title, description")
+    .eq("id", id)
+    .single();
 
-  const fetchProductDetail = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          store:stores(store_name, vendor_id)
-        `)
-        .eq('id', id)
-        .single()
+  return {
+    title: product ? `${product.title} | Credi Marketplace` : "Producto no encontrado",
+    description: product?.description || "Detalle del producto en Credi Marketplace",
+  };
+}
 
-      if (error) throw error
-      setProduct(data)
-    } catch (error) {
-      console.error('Error al cargar el producto:', error)
-    } finally {
-      setLoading(false)
-    }
+export default async function ProductDetailPage({ searchParams }: Props) {
+  const { id, ref } = await searchParams;
+
+  if (!id) {
+    notFound();
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-600 font-medium">
-        Cargando detalles...
-      </div>
-    )
-  }
+  // Obtener la información del producto en el servidor
+  const { data: product, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  if (!product) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-center bg-gray-50">
-        <h2 className="text-xl font-bold text-gray-700">Producto no encontrado</h2>
-      </div>
-    )
+  if (error || !product) {
+    notFound();
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 bg-gray-50 min-h-screen">
-      <div className="rounded-2xl bg-white p-8 shadow-sm border border-gray-100">
-        <h1 className="text-3xl font-extrabold text-gray-800">{product.title}</h1>
-        
-        {product.store && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
-            <div>
-              <span className="text-xs text-gray-400 block uppercase font-bold tracking-wider">Vendido por</span>
-              <span className="text-sm font-bold text-gray-800">{product.store.store_name}</span>
+    <div className="min-h-screen bg-background py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Navegación y Referidor */}
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            href="/products"
+            className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            &larr; Volver al Catálogo
+          </Link>
+          {ref && (
+            <span className="text-[11px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full border border-emerald-500/20">
+              Referido por: {ref}
+            </span>
+          )}
+        </div>
+
+        {/* Tarjeta de Detalle del Producto */}
+        <div className="rounded-3xl bg-card border border-border p-6 sm:p-10 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          {/* Contenedor de Imagen */}
+          <div className="aspect-square bg-muted rounded-2xl overflow-hidden flex items-center justify-center border border-border">
+            {product.images && product.images.length > 0 ? (
+              <img
+                src={product.images[0]}
+                alt={product.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-xs font-medium text-muted-foreground">
+                Sin imagen disponible
+              </span>
+            )}
+          </div>
+
+          {/* Información y Compra */}
+          <div className="flex flex-col justify-between h-full space-y-6">
+            <div className="space-y-3">
+              <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+                {product.title}
+              </h1>
+              <p className="text-2xl font-extrabold text-primary">
+                ${typeof product.price === "number" ? product.price.toFixed(2) : "0.00"}
+              </p>
+              <div className="pt-2">
+                <span className="text-xs font-semibold text-muted-foreground bg-muted px-3 py-1 rounded-full border border-border">
+                  Stock disponible: {product.stock ?? 0} unidades
+                </span>
+              </div>
+              <div className="pt-4 border-t border-border">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Descripción
+                </h3>
+                <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+                  {product.description || "Sin descripción proporcionada para este producto."}
+                </p>
+              </div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <UserReputationBadge userId={product.store.vendor_id} />
-              
-              <button
-                onClick={() => setIsRatingOpen(true)}
-                className="px-3.5 py-2 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-gray-800 transition shadow-sm"
+
+            {/* Acciones de Compra */}
+            <div className="pt-6 border-t border-border space-y-3">
+              <Link
+                href={`/checkout?product_id=${product.id}${ref ? `&ref=${ref}` : ""}`}
+                className="block w-full text-center rounded-xl bg-primary text-primary-foreground py-3.5 text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity"
               >
-                Calificar Vendedor ⭐
-              </button>
+                Comprar Ahora
+              </Link>
             </div>
           </div>
-        )}
-
-        <p className="mt-6 text-gray-600 leading-relaxed">
-          {product.description || 'Sin descripción disponible para este producto.'}
-        </p>
-        
-        <div className="mt-8 flex items-center justify-between border-t border-gray-100 pt-6">
-          <span className="text-3xl font-extrabold text-blue-600">
-            ${typeof product.price === 'number' ? product.price.toFixed(2) : '0.00'}
-          </span>
-          <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
-            Stock disponible: {product.stock ?? 0}
-          </span>
-        </div>
-
-        <div className="mt-8">
-          <button className="w-full rounded-xl bg-blue-600 py-3 text-center font-semibold text-white hover:bg-blue-700 transition shadow-md shadow-blue-100">
-            Comprar o Generar Enlace de Afiliado
-          </button>
         </div>
       </div>
-
-      {product.store && (
-        <RatingModal
-          isOpen={isRatingOpen}
-          onClose={() => setIsRatingOpen(false)}
-          targetUserName={product.store.store_name}
-          targetUserId={product.store.vendor_id}
-          role="vendedor"
-        />
-      )}
     </div>
-  )
-}
-
-export default function ProductDetailPage() {
-  return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-600 font-medium">
-        Cargando página...
-      </div>
-    }>
-      <ProductDetailContent />
-    </Suspense>
-  )
+  );
 }
