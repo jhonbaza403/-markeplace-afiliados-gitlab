@@ -1,6 +1,7 @@
 'use client'
+
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 
 interface UserReputationBadgeProps {
   userId: string
@@ -15,6 +16,8 @@ export default function UserReputationBadge({ userId }: UserReputationBadgeProps
   useEffect(() => {
     async function fetchReputation() {
       try {
+        const supabase = createClient()
+
         // 1. Obtener perfil para ver si está activo
         const { data: profile } = await supabase
           .from('profiles')
@@ -22,7 +25,7 @@ export default function UserReputationBadge({ userId }: UserReputationBadgeProps
           .eq('id', userId)
           .single()
 
-        if (profile) {
+        if (profile && typeof profile.is_active === 'boolean') {
           setIsActive(profile.is_active)
         }
 
@@ -49,21 +52,23 @@ export default function UserReputationBadge({ userId }: UserReputationBadgeProps
     }
   }, [userId])
 
-  if (loading) return <span className="text-xs text-gray-400">Cargando reputación...</span>
+  if (loading) {
+    return <span className="text-xs text-muted-foreground animate-pulse">Cargando reputación...</span>
+  }
 
   return (
     <div className="flex items-center gap-2">
       {!isActive ? (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20">
           ⚠️ Cuenta Suspendida por Fraude
         </span>
       ) : (
-        <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
+        <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full border border-border">
           <span className="text-amber-400 text-sm">★</span>
-          <span className="text-xs font-bold text-gray-800">
+          <span className="text-xs font-bold text-foreground">
             {avgRating !== null ? avgRating : 'Nuevo'}
           </span>
-          <span className="text-[11px] text-gray-500">
+          <span className="text-[11px] text-muted-foreground">
             ({totalRatings} {totalRatings === 1 ? 'opinión' : 'opiniones'})
           </span>
         </div>
