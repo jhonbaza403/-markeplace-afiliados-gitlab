@@ -11,7 +11,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,20 +18,45 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const supabase = createClient()
+      
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (error) throw error
+      if (signInError) throw signInError
 
-      router.push('/dashboard')
+      // Opcional: Obtener el perfil para redirigir según el rol del usuario
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profile?.role === 'admin') {
+          router.push('/dashboard')
+        } else if (profile?.role === 'vendor') {
+          router.push('/dashboard')
+        } else {
+          router.push('/') // Los clientes pueden ser dirigidos al marketplace
+        }
+      } else {
+        router.push('/dashboard')
+      }
+
       router.refresh()
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message)
+        // Mensajes de error en español amigables
+        if (err.message.includes('Invalid login credentials')) {
+          setError('Correo electrónico o contraseña incorrectos.')
+        } else {
+          setError(err.message)
+        }
       } else {
-        setError('Ocurrió un error inesperado al iniciar sesión')
+        setError('Ocurrió un error inesperado al iniciar sesión.')
       }
     } finally {
       setLoading(false)
