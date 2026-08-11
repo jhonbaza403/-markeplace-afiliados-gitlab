@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
-import { useLanguage } from '@/context/LanguageContext';
-import Link from 'next/link';
+import { useLanguage } from '@/context/LanguageContext'
+import Link from 'next/link'
 
 export default function Hero() {
-  const { t } = useLanguage();
+  const { t } = useLanguage()
 
   return (
     <section className="max-w-7xl mx-auto px-4 py-8">
@@ -21,14 +21,20 @@ export default function Hero() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
-          <a href="#productos" className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-6 py-3.5 rounded-2xl text-center shadow-lg transition">
+          <Link 
+            href="/#productos" 
+            className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-6 py-3.5 rounded-2xl text-center shadow-lg transition-transform hover:scale-105 active:scale-95"
+          >
             Ver Catálogo 🚀
-          </a>
-          <Link href="/dashboard/affiliate" className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold px-6 py-3.5 rounded-2xl text-center transition">
+          </Link>
+          <Link 
+            href="/dashboard/affiliate" 
+            className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold px-6 py-3.5 rounded-2xl text-center transition-transform hover:scale-105 active:scale-95"
+          >
             Panel de Afiliados
           </Link>
         </div>
       </div>
     </section>
-  );
+  )
 }
