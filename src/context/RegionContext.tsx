@@ -9,6 +9,7 @@ interface RegionContextType {
 
 const RegionContext = createContext<RegionContextType | undefined>(undefined)
 
+// 1. Exportación de RegionProvider (necesario para layout.tsx)
 export const RegionProvider = ({ children }: { children: ReactNode }) => {
   const [region, setRegion] = useState<string>('default')
 
@@ -19,6 +20,7 @@ export const RegionProvider = ({ children }: { children: ReactNode }) => {
   )
 }
 
+// 2. Exportación de useRegion (necesario para RegionSelector.tsx)
 export const useRegion = (): RegionContextType => {
   const context = useContext(RegionContext)
   if (!context) {
