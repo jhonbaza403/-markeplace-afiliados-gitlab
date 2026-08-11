@@ -126,7 +126,7 @@ export const affiliateProducts: AffiliateProduct[] = [
       es: "Conecta directamente con fabricantes globales para compras al por mayor y emprendimientos.",
       en: "Connect directly with global manufacturers for wholesale purchases and businesses.",
       pt: "Conecte-se diretamente com fabricantes globais para compras no atacado e negócios.",
-      fr: "Connectez-vous directement avec des fabricants mondiaux pour les achats en gros."
+      fr: "Connectez-vous diretamente com fabricantes mondiaux pour les achats en gros."
     },
     badge: "Alibaba Mayor",
     badgeColor: "bg-orange-500",
@@ -142,7 +142,7 @@ export const affiliateProducts: AffiliateProduct[] = [
 ];
 
 export default function ProductGrid() {
-  const { lang, t } = useLanguage();
+  const { lang } = useLanguage();
 
   return (
     <section id="productos" className="max-w-7xl mx-auto px-4 py-16">
