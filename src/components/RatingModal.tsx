@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 
 interface RatingModalProps {
   isOpen: boolean
@@ -50,6 +50,8 @@ export default function RatingModal({
     setLoading(true)
 
     try {
+      const supabase = createClient()
+
       // 2. Obtener el usuario autenticado actual (quien califica)
       const {
         data: { user },
