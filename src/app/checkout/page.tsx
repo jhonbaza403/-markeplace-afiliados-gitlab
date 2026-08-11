@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/context/AuthContext'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 interface Product {
@@ -13,7 +12,6 @@ interface Product {
 }
 
 function CheckoutContent() {
-  const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -24,6 +22,7 @@ function CheckoutContent() {
   const [loadingProduct, setLoadingProduct] = useState(true)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchProduct() {
@@ -33,6 +32,7 @@ function CheckoutContent() {
       }
 
       try {
+        const supabase = createClient()
         const { data, error } = await supabase
           .from('products')
           .select('id, title, price')
@@ -53,14 +53,20 @@ function CheckoutContent() {
 
   const handleSimulateCheckout = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!user) {
-      router.push('/auth/login')
-      return
-    }
-
     setLoading(true)
+    setErrorMessage(null)
+
     try {
+      const supabase = createClient()
+
+      // 1. Verificar sesión activa del usuario
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        router.push(`/auth/login?redirectTo=/checkout?product_id=${productId}`)
+        return
+      }
+
+      // 2. Registrar la orden en Supabase
       const { error } = await supabase
         .from('orders')
         .insert({
@@ -73,8 +79,13 @@ function CheckoutContent() {
 
       if (error) throw error
       setSuccess(true)
-    } catch (error) {
-      console.error('Error al procesar el pago:', error)
+    } catch (err: unknown) {
+      console.error('Error al procesar el pago:', err)
+      if (err instanceof Error) {
+        setErrorMessage(err.message)
+      } else {
+        setErrorMessage('Ocurrió un error al procesar el pago. Por favor intenta nuevamente.')
+      }
     } finally {
       setLoading(false)
     }
@@ -96,6 +107,12 @@ function CheckoutContent() {
       <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-md">
         <h1 className="mb-6 text-2xl font-bold text-gray-800">Finalizar Compra / Checkout</h1>
 
+        {errorMessage && (
+          <div className="mb-6 rounded-xl bg-red-50 p-4 border border-red-200 text-xs text-red-600">
+            {errorMessage}
+          </div>
+        )}
+
         {success ? (
           <div className="space-y-4">
             <div className="rounded-xl bg-green-50 p-4 text-center text-green-700 border border-green-200">
@@ -110,7 +127,7 @@ function CheckoutContent() {
               )}
             </div>
             <Link
-              href="/products"
+              href="/marketplace"
               className="block w-full rounded-xl bg-blue-600 py-3 text-center font-semibold text-white hover:bg-blue-700 transition shadow-sm"
             >
               Volver al Catálogo
