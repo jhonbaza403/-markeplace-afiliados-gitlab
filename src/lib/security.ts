@@ -1,22 +1,37 @@
+// ==========================================================
+// ARCHIVO: src/lib/security.ts
+// Funciones auxiliares de Seguridad, Control de Accesos y Sanitización
+// ==========================================================
+
 import { UserRole } from '@/types/users';
 
 /**
- * Verifica si un usuario tiene un rol específico.
- * Los administradores siempre tienen permiso.
+ * Verifica si un usuario posee un rol requerido dentro de sus roles asignados.
+ * El rol 'admin' otorga acceso global de manera predeterminada.
  */
-export function hasRequiredRole(userRoles: UserRole[], requiredRole: UserRole): boolean {
-  if (!userRoles || userRoles.length === 0) return false;
-  if (userRoles.includes('admin')) return true; // El admin todo lo puede
-  
+export function hasRequiredRole(
+  userRoles: UserRole[] | undefined | null,
+  requiredRole: UserRole
+): boolean {
+  if (!userRoles || !Array.isArray(userRoles) || userRoles.length === 0) {
+    return false;
+  }
+
+  // Permiso absoluto para administradores
+  if (userRoles.includes('admin')) {
+    return true;
+  }
+
   return userRoles.includes(requiredRole);
 }
 
 /**
- * Sanitización básica de strings para prevenir inyecciones XSS simples
- * en inputs que luego se renderizarán.
+ * Sanitización básica de cadenas de texto para prevenir inyecciones XSS
+ * en valores de entrada de usuario antes de su renderización.
  */
 export function sanitizeInput(input: string): string {
-  if (!input) return '';
+  if (!input || typeof input !== 'string') return '';
+
   return input
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
