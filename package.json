@@ -1,5 +1,5 @@
 {
-  "name": "marketplace-afiliados-gitlab",
+  "name": "markeplace-afiliados",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -15,6 +15,7 @@
     "clean": "node -e \"fs.rmSync('.next',{recursive:true,force:true});fs.rmSync('node_modules',{recursive:true,force:true})\""
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.48.0",
     "next": "16.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -26,6 +27,8 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "babel-plugin-react-compiler": "^19.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.3.0",
     "postcss": "^8.5.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0"
