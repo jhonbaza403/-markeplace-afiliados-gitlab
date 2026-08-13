@@ -1,23 +1,38 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* 1. Compilador experimental de React 19 */
+  /* 🚀 React Compiler (React 19) */
   experimental: {
     reactCompiler: true,
   },
 
-  /* 2. Optimización de imágenes (ejemplo con dominios externos como Supabase o GitLab) */
+  /* ⚡ Optimización de Imágenes en Vercel */
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**", // Permite cargar imágenes desde cualquier host HTTPS
-      },
-    ],
+    formats: ['image/avif', 'image/webp'],
   },
 
-  /* 3. Modo estricto de React */
+  /* 🛡️ Modos de seguridad y Headers para Cloudflare */
   reactStrictMode: true,
+  poweredByHeader: false, // Oculta 'X-Powered-By: Next.js' por seguridad
+
+  /* 🌐 Confianza en las cabeceras del proxy de Cloudflare */
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
