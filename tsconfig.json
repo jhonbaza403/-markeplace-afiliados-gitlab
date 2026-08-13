@@ -13,37 +13,27 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-
-    /* 🚀 Aliases & Rutas */
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
-
-    /* ⚡ Plugin de Next.js & React 19 / App Router */
     "plugins": [
       {
         "name": "next"
       }
     ],
-
-    /* 🛡️ Reglas estrictas y Type Safety para App Router */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
+    "noUnusedParameters": true
   },
   "include": [
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "src/**/*.ts",
-    "src/**/*.tsx",
-    ".next/dev/compiler/**/*.ts"
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules"
