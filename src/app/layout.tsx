@@ -1,29 +1,52 @@
-'use client';
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
+import '@/app/globals.css';
+import { AuthProvider } from '@/context/AuthContext';
+import { RegionProvider } from '@/context/RegionContext';
+import Navbar from '@/components/Navbar';
 
-import React from 'react';
-import { useRegion } from '@/context/RegionContext';
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+});
 
-export const RegionSelector: React.FC = () => {
-  const { selectedRegion, setSelectedRegion, availableRegions } = useRegion();
-
-  return (
-    <div className="relative inline-block text-left">
-      <select
-        value={selectedRegion.id}
-        onChange={(e) => {
-          const region = availableRegions.find((r) => r.id === e.target.value);
-          if (region) setSelectedRegion(region);
-        }}
-        className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-      >
-        {availableRegions.map((region) => (
-          <option key={region.id} value={region.id}>
-            {region.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+// Configuración moderna de Viewport en App Router
+export const viewport: Viewport = {
+  themeColor: '#4f46e5',
+  width: 'device-width',
+  initialScale: 1,
 };
 
-export default RegionSelector;
+// Metadata API de Server Components
+export const metadata: Metadata = {
+  title: {
+    default: 'Marketplace Afiliados',
+    template: '%s | Marketplace Afiliados',
+  },
+  description: 'Plataforma de afiliados y marketplace',
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="es" className={inter.className}>
+      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+        <AuthProvider>
+          <RegionProvider>
+            <Navbar />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              {children}
+            </main>
+          </RegionProvider>
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
