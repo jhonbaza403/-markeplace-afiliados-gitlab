@@ -1,6 +1,17 @@
-import { createClient } from '@supabase/supabase-js'
+// ==========================================================
+// ARCHIVO: src/lib/supabase/client.ts
+// Cliente Supabase para Client Components (Browser)
+// ==========================================================
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+import { createBrowserClient } from '@supabase/ssr';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Función para instanciar el cliente del navegador
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+
+// Instancia singleton exportada para mantener compatibilidad con tus imports
+export const supabase = createClient();
