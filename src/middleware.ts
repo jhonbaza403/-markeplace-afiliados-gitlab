@@ -1,3 +1,8 @@
+// ==========================================================
+// ARCHIVO: src/middleware.ts
+// Middleware de Autenticación Supabase y Cabeceras de Seguridad
+// ==========================================================
+
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
@@ -9,34 +14,38 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // 2. Configurar el cliente de Supabase para el middleware (soporta publishable_key y anon_key)
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          
-          response = NextResponse.next({
-            request,
-          });
-          
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  // 2. Variables de entorno de Supabase
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
-  // 3. Refrescar la sesión (IMPORTANTE: Debe ejecutarse antes de retornar la respuesta)
+  // 3. Configurar el cliente de Supabase SSR
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        );
+
+        response = NextResponse.next({
+          request,
+        });
+
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
+
+  // 4. Refrescar la sesión de usuario activa
   await supabase.auth.getUser();
 
-  // 4. Aplicar cabeceras de seguridad
+  // 5. Aplicar cabeceras de seguridad para producción
   const isProduction = process.env.NODE_ENV === "production";
 
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -57,8 +66,9 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
+// Configurar rutas donde se ejecutará el middleware
 export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)",
   ],
-};;
+};
