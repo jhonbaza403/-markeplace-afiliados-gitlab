@@ -4,28 +4,18 @@
 // ARCHIVO: src/components/B2BCheckoutModal.tsx
 // Credi Marketplace
 //
+// NIVEL: PRODUCCIÓN / B2B
+//
 // PROPÓSITO:
-// Modal de creación de órdenes mayoristas B2B.
+// Modal avanzado para solicitar una orden mayorista.
 //
-// RESPONSABILIDADES:
-// - Seleccionar cantidad mayorista.
-// - Calcular el total de la operación.
-// - Seleccionar método de pago.
-// - Mostrar las instrucciones de pago.
-// - Registrar la referencia de pago.
-// - Crear una orden B2B en Supabase.
-//
-// IMPORTANTE:
-// Este componente NO verifica blockchain ni Binance.
-// Solamente registra la orden y la referencia proporcionada
-// por el usuario para su posterior validación.
-//
-// La seguridad definitiva depende de:
-// - autenticación Supabase;
-// - Row Level Security (RLS);
-// - políticas de INSERT;
-// - validaciones del backend;
-// - proceso de verificación de pagos.
+// PRINCIPIOS:
+// - El cliente NO verifica pagos.
+// - El cliente NO confirma fondos.
+// - El cliente NO modifica precios provenientes de BD.
+// - El cliente solamente prepara y registra una solicitud.
+// - La seguridad definitiva corresponde a Supabase/RLS/backend.
+// - Las órdenes quedan en estado "verifying" hasta validación.
 // ==========================================================
 
 import {
@@ -33,6 +23,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  type ChangeEvent,
   type FormEvent,
 } from 'react';
 
@@ -43,6 +34,8 @@ import { createClient } from '@/lib/supabase/client';
 // ==========================================================
 
 type PaymentMethod = 'binance_pay' | 'usdt_trc20';
+
+type CopiedField = 'binance' | 'wallet' | null;
 
 interface B2BCheckoutModalProps {
   productId: string;
@@ -56,36 +49,43 @@ interface B2BCheckoutModalProps {
 }
 
 // ==========================================================
-// 2. CONSTANTES
+// 2. CONSTANTES DE SEGURIDAD
 // ==========================================================
 
-/**
- * Límite defensivo para evitar cantidades absurdamente grandes
- * introducidas accidentalmente desde el navegador.
- *
- * La validación definitiva debe existir también en backend/DB.
- */
 const MAX_B2B_QUANTITY = 1_000_000;
 
-/**
- * Longitud máxima de una referencia de pago.
- */
-const MAX_TRANSACTION_REFERENCE_LENGTH = 200;
+const MAX_PAYMENT_REFERENCE_LENGTH = 200;
+
+const COPY_FEEDBACK_DURATION = 2000;
+
+const AUTO_CLOSE_DELAY = 2500;
 
 // ==========================================================
 // 3. UTILIDADES
 // ==========================================================
 
-function normalizePositiveInteger(value: number): number {
+function sanitizeInteger(value: number): number {
   if (!Number.isFinite(value)) {
     return 1;
   }
 
-  return Math.max(1, Math.floor(value));
+  return Math.floor(value);
 }
 
-function normalizePositivePrice(value: number): number {
-  if (!Number.isFinite(value) || value < 0) {
+function sanitizeQuantity(
+  value: number,
+  minimum: number,
+): number {
+  const normalized = sanitizeInteger(value);
+
+  return Math.min(
+    Math.max(normalized, minimum),
+    MAX_B2B_QUANTITY,
+  );
+}
+
+function sanitizePrice(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) {
     return 0;
   }
 
@@ -113,29 +113,29 @@ export default function B2BCheckoutModal({
   usdtWalletAddress,
   onClose,
 }: B2BCheckoutModalProps) {
-  // --------------------------------------------------------
-  // Normalización defensiva de propiedades recibidas
-  // --------------------------------------------------------
+  // ========================================================
+  // 4.1 NORMALIZACIÓN
+  // ========================================================
 
-  const safeMinQuantity = useMemo(
-    () =>
-      Math.min(
-        normalizePositiveInteger(minQuantity),
-        MAX_B2B_QUANTITY,
-      ),
-    [minQuantity],
-  );
+  const safeMinQuantity = useMemo(() => {
+    const normalized = sanitizeInteger(minQuantity);
+
+    return Math.min(
+      Math.max(normalized, 1),
+      MAX_B2B_QUANTITY,
+    );
+  }, [minQuantity]);
 
   const safeWholesalePrice = useMemo(
-    () => normalizePositivePrice(wholesalePrice),
+    () => sanitizePrice(wholesalePrice),
     [wholesalePrice],
   );
 
-  // --------------------------------------------------------
-  // Estado
-  // --------------------------------------------------------
+  // ========================================================
+  // 4.2 ESTADO
+  // ========================================================
 
-  const [quantity, setQuantity] = useState<number>(
+  const [quantity, setQuantity] = useState(
     safeMinQuantity,
   );
 
@@ -145,9 +145,8 @@ export default function B2BCheckoutModal({
   const [paymentReference, setPaymentReference] =
     useState('');
 
-  const [copiedField, setCopiedField] = useState<
-    'binance' | 'wallet' | null
-  >(null);
+  const [copiedField, setCopiedField] =
+    useState<CopiedField>(null);
 
   const [isSubmitting, setIsSubmitting] =
     useState(false);
@@ -158,68 +157,108 @@ export default function B2BCheckoutModal({
   const [successMessage, setSuccessMessage] =
     useState<string | null>(null);
 
-  // --------------------------------------------------------
-  // Reajustar cantidad si cambia el mínimo del producto
-  // --------------------------------------------------------
+  // ========================================================
+  // 4.3 SINCRONIZACIÓN DE CANTIDAD
+  // ========================================================
 
   useEffect(() => {
-    setQuantity((currentQuantity) =>
-      Math.min(
-        Math.max(currentQuantity, safeMinQuantity),
-        MAX_B2B_QUANTITY,
+    setQuantity((current) =>
+      sanitizeQuantity(
+        current,
+        safeMinQuantity,
       ),
     );
   }, [safeMinQuantity]);
 
-  // --------------------------------------------------------
-  // Total
-  // --------------------------------------------------------
+  // ========================================================
+  // 4.4 TOTAL
+  // ========================================================
 
-  const totalUSD = useMemo(() => {
-    const normalizedQuantity = Math.min(
-      Math.max(
-        normalizePositiveInteger(quantity),
+  const normalizedQuantity = useMemo(
+    () =>
+      sanitizeQuantity(
+        quantity,
         safeMinQuantity,
       ),
-      MAX_B2B_QUANTITY,
-    );
+    [quantity, safeMinQuantity],
+  );
 
-    return normalizedQuantity * safeWholesalePrice;
-  }, [
-    quantity,
-    safeMinQuantity,
-    safeWholesalePrice,
-  ]);
+  const totalUSD = useMemo(
+    () =>
+      normalizedQuantity *
+      safeWholesalePrice,
+    [normalizedQuantity, safeWholesalePrice],
+  );
 
   // ========================================================
-  // COPIAR INFORMACIÓN DE PAGO
+  // 5. CERRAR MODAL
+  // ========================================================
+
+  const handleClose = useCallback(() => {
+    if (isSubmitting) {
+      return;
+    }
+
+    onClose();
+  }, [isSubmitting, onClose]);
+
+  // ========================================================
+  // 6. ESCAPE
+  // ========================================================
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isSubmitting) {
+        onClose();
+      }
+    };
+
+    document.addEventListener(
+      'keydown',
+      handleKeyDown,
+    );
+
+    return () => {
+      document.removeEventListener(
+        'keydown',
+        handleKeyDown,
+      );
+    };
+  }, [isSubmitting, onClose]);
+
+  // ========================================================
+  // 7. COPIAR DATOS
   // ========================================================
 
   const handleCopy = useCallback(
     async (
-      text: string,
-      field: 'binance' | 'wallet',
+      value: string,
+      field: Exclude<CopiedField, null>,
     ) => {
-      if (!text.trim()) {
+      const normalizedValue = value.trim();
+
+      if (!normalizedValue) {
         return;
       }
 
       try {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(
+          normalizedValue,
+        );
 
         setCopiedField(field);
 
         window.setTimeout(() => {
           setCopiedField(null);
-        }, 2000);
+        }, COPY_FEEDBACK_DURATION);
       } catch (error: unknown) {
         console.error(
-          'No fue posible copiar la información de pago:',
+          'Error al copiar información de pago:',
           error,
         );
 
         setErrorMessage(
-          'No fue posible copiar automáticamente. Puedes seleccionar y copiar el dato manualmente.',
+          'No fue posible copiar automáticamente. Selecciona el dato manualmente.',
         );
       }
     },
@@ -227,53 +266,55 @@ export default function B2BCheckoutModal({
   );
 
   // ========================================================
-  // CAMBIO DE CANTIDAD
+  // 8. CAMBIO DE CANTIDAD
   // ========================================================
 
   const handleQuantityChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: ChangeEvent<HTMLInputElement>,
   ) => {
-    const rawValue = event.target.value;
+    const value = event.target.value;
 
-    if (rawValue === '') {
+    if (value === '') {
       setQuantity(safeMinQuantity);
       return;
     }
 
-    const parsedValue = Number.parseInt(
-      rawValue,
-      10,
-    );
+    const parsed = Number.parseInt(value, 10);
 
-    if (!Number.isFinite(parsedValue)) {
+    if (!Number.isFinite(parsed)) {
       setQuantity(safeMinQuantity);
       return;
     }
 
-    const normalizedValue = Math.min(
-      Math.max(parsedValue, safeMinQuantity),
-      MAX_B2B_QUANTITY,
+    setQuantity(
+      sanitizeQuantity(
+        parsed,
+        safeMinQuantity,
+      ),
     );
 
-    setQuantity(normalizedValue);
     setErrorMessage(null);
   };
 
   // ========================================================
-  // CAMBIO DE MÉTODO DE PAGO
+  // 9. CAMBIO DE MÉTODO
   // ========================================================
 
   const handlePaymentMethodChange = (
     method: PaymentMethod,
   ) => {
+    if (isSubmitting) {
+      return;
+    }
+
     setPaymentMethod(method);
     setPaymentReference('');
-    setErrorMessage(null);
     setCopiedField(null);
+    setErrorMessage(null);
   };
 
   // ========================================================
-  // VALIDACIÓN
+  // 10. VALIDACIÓN
   // ========================================================
 
   const validateOrder = (): string | null => {
@@ -282,61 +323,67 @@ export default function B2BCheckoutModal({
     }
 
     if (!productName.trim()) {
-      return 'El producto no tiene un nombre válido.';
+      return 'El producto seleccionado no tiene un nombre válido.';
+    }
+
+    if (safeWholesalePrice <= 0) {
+      return 'El precio mayorista recibido no es válido.';
     }
 
     if (
-      !Number.isFinite(safeWholesalePrice) ||
-      safeWholesalePrice <= 0
+      normalizedQuantity <
+      safeMinQuantity
     ) {
-      return 'El precio mayorista no es válido.';
+      return `La cantidad mínima es de ${safeMinQuantity.toLocaleString()} unidades.`;
     }
 
     if (
-      quantity < safeMinQuantity ||
-      quantity > MAX_B2B_QUANTITY
+      normalizedQuantity >
+      MAX_B2B_QUANTITY
     ) {
-      return `La cantidad debe estar entre ${safeMinQuantity.toLocaleString()} y ${MAX_B2B_QUANTITY.toLocaleString()} unidades.`;
-    }
-
-    const normalizedReference =
-      paymentReference.trim();
-
-    if (!normalizedReference) {
-      return 'Debes introducir la referencia de pago.';
-    }
-
-    if (
-      normalizedReference.length >
-      MAX_TRANSACTION_REFERENCE_LENGTH
-    ) {
-      return `La referencia de pago no puede superar los ${MAX_TRANSACTION_REFERENCE_LENGTH} caracteres.`;
-    }
-
-    if (paymentMethod === 'binance_pay') {
-      if (!binancePayId.trim()) {
-        return 'El Binance Pay ID del proveedor no está configurado.';
-      }
-    }
-
-    if (paymentMethod === 'usdt_trc20') {
-      if (!usdtWalletAddress.trim()) {
-        return 'La dirección USDT TRC20 del proveedor no está configurada.';
-      }
+      return `La cantidad máxima permitida es de ${MAX_B2B_QUANTITY.toLocaleString()} unidades.`;
     }
 
     if (
       !Number.isFinite(totalUSD) ||
       totalUSD <= 0
     ) {
-      return 'El importe total de la orden no es válido.';
+      return 'No fue posible calcular correctamente el importe total.';
+    }
+
+    const reference =
+      paymentReference.trim();
+
+    if (!reference) {
+      return 'Debes introducir la referencia del pago.';
+    }
+
+    if (
+      reference.length >
+      MAX_PAYMENT_REFERENCE_LENGTH
+    ) {
+      return `La referencia no puede superar los ${MAX_PAYMENT_REFERENCE_LENGTH} caracteres.`;
+    }
+
+    if (
+      paymentMethod === 'binance_pay' &&
+      !binancePayId.trim()
+    ) {
+      return 'El proveedor no tiene configurado un Binance Pay ID.';
+    }
+
+    if (
+      paymentMethod === 'usdt_trc20' &&
+      !usdtWalletAddress.trim()
+    ) {
+      return 'El proveedor no tiene configurada una dirección USDT TRC20.';
     }
 
     return null;
   };
 
   // ========================================================
-  // CREACIÓN DE ORDEN
+  // 11. CREACIÓN DE ORDEN
   // ========================================================
 
   const handleConfirmPayment = async (
@@ -344,14 +391,15 @@ export default function B2BCheckoutModal({
   ) => {
     event.preventDefault();
 
-    if (isSubmitting) {
+    if (isSubmitting || successMessage) {
       return;
     }
 
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const validationError = validateOrder();
+    const validationError =
+      validateOrder();
 
     if (validationError) {
       setErrorMessage(validationError);
@@ -364,7 +412,7 @@ export default function B2BCheckoutModal({
       const supabase = createClient();
 
       // ----------------------------------------------------
-      // Obtener usuario autenticado
+      // AUTENTICACIÓN
       // ----------------------------------------------------
 
       const {
@@ -374,37 +422,28 @@ export default function B2BCheckoutModal({
 
       if (authError) {
         throw new Error(
-          'No fue posible verificar la sesión actual.',
+          'No fue posible comprobar la sesión.',
         );
       }
 
       if (!user) {
-        setErrorMessage(
-          'Debes iniciar sesión para procesar una orden mayorista.',
+        throw new Error(
+          'Debes iniciar sesión para realizar una orden mayorista.',
         );
-        return;
       }
 
       // ----------------------------------------------------
-      // Normalización final antes de persistir
+      // REFERENCIA
       // ----------------------------------------------------
-
-      const normalizedQuantity = Math.min(
-        Math.max(
-          Math.floor(quantity),
-          safeMinQuantity,
-        ),
-        MAX_B2B_QUANTITY,
-      );
 
       const normalizedReference =
         paymentReference.trim();
 
-      const normalizedTotal =
-        normalizedQuantity * safeWholesalePrice;
-
       // ----------------------------------------------------
-      // Crear orden B2B
+      // INSERCIÓN
+      //
+      // IMPORTANTE:
+      // El frontend no determina que el pago sea válido.
       // ----------------------------------------------------
 
       const { error: insertError } =
@@ -412,19 +451,42 @@ export default function B2BCheckoutModal({
           .from('b2b_orders')
           .insert({
             user_id: user.id,
-            product_id: productId.trim(),
-            product_title: productName.trim(),
-            supplier_id: supplierId?.trim() || null,
-            quantity: normalizedQuantity,
-            unit_price_usd: safeWholesalePrice,
-            total_usd: normalizedTotal,
-            payment_method: paymentMethod,
 
-            // Conservamos la referencia en el campo existente
-            // mientras el esquema de BD no sea migrado.
-            binance_tx_id: normalizedReference,
+            product_id:
+              productId.trim(),
 
-            status: 'verifying',
+            product_title:
+              productName.trim(),
+
+            supplier_id:
+              supplierId?.trim() || null,
+
+            quantity:
+              normalizedQuantity,
+
+            unit_price_usd:
+              safeWholesalePrice,
+
+            total_usd:
+              totalUSD,
+
+            payment_method:
+              paymentMethod,
+
+            // ------------------------------------------------
+            // COMPATIBILIDAD CON ESQUEMA ACTUAL
+            //
+            // Si posteriormente se agrega un campo:
+            // payment_reference
+            //
+            // deberá migrarse este dato allí.
+            // ------------------------------------------------
+
+            binance_tx_id:
+              normalizedReference,
+
+            status:
+              'verifying',
           });
 
       if (insertError) {
@@ -434,58 +496,56 @@ export default function B2BCheckoutModal({
         );
 
         throw new Error(
-          'No fue posible registrar la orden en el sistema.',
+          'No fue posible registrar la orden en la plataforma.',
         );
       }
 
       // ----------------------------------------------------
-      // Éxito
+      // ÉXITO
       // ----------------------------------------------------
 
       setSuccessMessage(
-        'Orden B2B registrada correctamente. La referencia de pago quedó pendiente de verificación.',
+        'Solicitud registrada correctamente. La orden permanecerá pendiente hasta completar la verificación del pago.',
       );
 
       window.setTimeout(() => {
         onClose();
-      }, 2200);
+      }, AUTO_CLOSE_DELAY);
     } catch (error: unknown) {
       console.error(
-        'Error al registrar la orden B2B:',
+        'Error al crear orden B2B:',
         error,
       );
 
-      const message =
+      setErrorMessage(
         error instanceof Error
           ? error.message
-          : 'Hubo un error al registrar la orden.';
-
-      setErrorMessage(message);
+          : 'Ocurrió un error inesperado al registrar la orden.',
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   // ========================================================
-  // RENDER
+  // 12. RENDER
   // ========================================================
 
   return (
     <div
       className="
-        fixed
-        inset-0
-        z-[100]
-        flex
-        items-center
-        justify-center
-        bg-black/70
+        fixed inset-0 z-[100]
+        flex items-center justify-center
+        bg-black/75
         p-4
-        backdrop-blur-sm
+        backdrop-blur-md
       "
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
+        if (
+          event.target === event.currentTarget &&
+          !isSubmitting
+        ) {
           onClose();
         }
       }}
@@ -495,15 +555,13 @@ export default function B2BCheckoutModal({
         aria-modal="true"
         aria-labelledby="b2b-checkout-title"
         className="
-          w-full
-          max-w-lg
-          max-h-[90vh]
+          relative
+          w-full max-w-lg
+          max-h-[92vh]
           overflow-y-auto
-          rounded-2xl
-          border
-          border-border
+          rounded-3xl
+          border border-border
           bg-card
-          p-6
           text-card-foreground
           shadow-2xl
         "
@@ -512,26 +570,33 @@ export default function B2BCheckoutModal({
             CABECERA
         ================================================== */}
 
-        <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
+        <div
+          className="
+            sticky top-0 z-10
+            flex items-start justify-between
+            gap-4
+            border-b border-border
+            bg-card/95
+            p-6
+            backdrop-blur
+          "
+        >
           <div className="min-w-0">
             <span
               className="
-                inline-flex
-                items-center
-                rounded
-                border
-                border-amber-500/20
+                inline-flex items-center
+                rounded-full
+                border border-amber-500/20
                 bg-amber-500/10
-                px-2
-                py-0.5
+                px-3 py-1
                 text-[10px]
-                font-bold
+                font-black
                 uppercase
-                tracking-wider
+                tracking-widest
                 text-amber-500
               "
             >
-              Orden Mayorista B2B
+              Operación B2B
             </span>
 
             <h2
@@ -539,8 +604,9 @@ export default function B2BCheckoutModal({
               className="
                 mt-2
                 break-words
-                text-lg
-                font-bold
+                text-xl
+                font-black
+                leading-tight
                 text-foreground
               "
             >
@@ -550,13 +616,13 @@ export default function B2BCheckoutModal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isSubmitting}
-            aria-label="Cerrar ventana de orden mayorista"
+            aria-label="Cerrar pedido mayorista"
             className="
               shrink-0
-              rounded-lg
-              p-1
+              rounded-xl
+              p-2
               text-xl
               font-bold
               text-muted-foreground
@@ -574,357 +640,388 @@ export default function B2BCheckoutModal({
           </button>
         </div>
 
-        {/* ==================================================
-            MENSAJES
-        ================================================== */}
+        <div className="p-6">
+          {/* ==================================================
+              ESTADO DE OPERACIÓN
+          ================================================== */}
 
-        {errorMessage && (
-          <div
-            role="alert"
-            className="
-              mt-5
-              rounded-xl
-              border
-              border-destructive/30
-              bg-destructive/10
-              p-3
-              text-sm
-              text-destructive
-            "
-          >
-            {errorMessage}
-          </div>
-        )}
+          {errorMessage && (
+            <div
+              role="alert"
+              className="
+                mb-5
+                rounded-2xl
+                border border-destructive/30
+                bg-destructive/10
+                p-4
+                text-sm
+                font-medium
+                text-destructive
+              "
+            >
+              {errorMessage}
+            </div>
+          )}
 
-        {successMessage && (
-          <div
-            role="status"
-            className="
-              mt-5
-              rounded-xl
-              border
-              border-emerald-500/30
-              bg-emerald-500/10
-              p-3
-              text-sm
-              text-emerald-600
-              dark:text-emerald-400
-            "
-          >
-            {successMessage}
-          </div>
-        )}
+          {successMessage && (
+            <div
+              role="status"
+              className="
+                mb-5
+                rounded-2xl
+                border border-emerald-500/30
+                bg-emerald-500/10
+                p-4
+                text-sm
+                font-medium
+                text-emerald-600
+                dark:text-emerald-400
+              "
+            >
+              {successMessage}
+            </div>
+          )}
 
-        {/* ==================================================
-            CANTIDAD
-        ================================================== */}
-
-        <div className="mt-6 space-y-2">
-          <label
-            htmlFor="b2b-quantity"
-            className="
-              block
-              text-xs
-              font-semibold
-              text-muted-foreground
-            "
-          >
-            Cantidad a comprar
-          </label>
-
-          <p className="text-[11px] text-muted-foreground">
-            Pedido mínimo mayorista:{' '}
-            <strong className="text-foreground">
-              {safeMinQuantity.toLocaleString()}
-            </strong>{' '}
-            unidades.
-          </p>
-
-          <input
-            id="b2b-quantity"
-            type="number"
-            inputMode="numeric"
-            min={safeMinQuantity}
-            max={MAX_B2B_QUANTITY}
-            step={1}
-            value={quantity}
-            onChange={handleQuantityChange}
-            disabled={isSubmitting}
-            className="
-              w-full
-              rounded-xl
-              border
-              border-border
-              bg-muted/50
-              px-4
-              py-3
-              font-bold
-              text-foreground
-              outline-none
-              transition
-              focus:border-amber-500
-              focus:ring-2
-              focus:ring-amber-500/20
-              disabled:cursor-not-allowed
-              disabled:opacity-60
-            "
-          />
+          {/* ==================================================
+              RESUMEN
+          ================================================== */}
 
           <div
             className="
-              flex
-              flex-col
-              gap-2
-              pt-2
-              text-xs
-              text-muted-foreground
-              sm:flex-row
-              sm:items-center
-              sm:justify-between
+              rounded-2xl
+              border border-border
+              bg-muted/30
+              p-4
             "
           >
-            <span>
-              Precio unitario:{' '}
-              <strong className="text-foreground">
+            <div className="flex justify-between gap-4">
+              <span className="text-xs text-muted-foreground">
+                Pedido mínimo
+              </span>
+
+              <strong className="text-xs text-foreground">
+                {safeMinQuantity.toLocaleString()} unidades
+              </strong>
+            </div>
+
+            <div className="mt-2 flex justify-between gap-4">
+              <span className="text-xs text-muted-foreground">
+                Precio unitario
+              </span>
+
+              <strong className="text-xs text-foreground">
                 ${formatUSDT(safeWholesalePrice)} USDT
               </strong>
-            </span>
+            </div>
 
-            <span>
-              Total:{' '}
-              <strong className="text-sm text-amber-500">
-                ${formatUSDT(totalUSD)} USDT
-              </strong>
-            </span>
+            <div className="mt-3 border-t border-border pt-3">
+              <div className="flex items-end justify-between gap-4">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Total de la operación
+                </span>
+
+                <strong className="text-2xl font-black text-amber-500">
+                  ${formatUSDT(totalUSD)}
+                </strong>
+              </div>
+
+              <p className="mt-1 text-right text-[10px] text-muted-foreground">
+                USDT
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* ==================================================
-            MÉTODO DE PAGO
-        ================================================== */}
+          {/* ==================================================
+              CANTIDAD
+          ================================================== */}
 
-        <fieldset className="mt-6 space-y-3">
-          <legend
+          <div className="mt-6">
+            <label
+              htmlFor="b2b-quantity"
+              className="
+                mb-2
+                block
+                text-xs
+                font-bold
+                text-foreground
+              "
+            >
+              Cantidad a comprar
+            </label>
+
+            <input
+              id="b2b-quantity"
+              type="number"
+              inputMode="numeric"
+              min={safeMinQuantity}
+              max={MAX_B2B_QUANTITY}
+              step={1}
+              value={quantity}
+              onChange={handleQuantityChange}
+              disabled={isSubmitting}
+              className="
+                w-full
+                rounded-2xl
+                border border-border
+                bg-background
+                px-4 py-3
+                font-bold
+                text-foreground
+                outline-none
+                transition
+                focus:border-amber-500
+                focus:ring-4
+                focus:ring-amber-500/10
+                disabled:opacity-60
+              "
+            />
+          </div>
+
+          {/* ==================================================
+              MÉTODO DE PAGO
+          ================================================== */}
+
+          <fieldset className="mt-6">
+            <legend
+              className="
+                mb-3
+                text-xs
+                font-bold
+                text-foreground
+              "
+            >
+              Selecciona el método de pago
+            </legend>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(
+                [
+                  {
+                    id: 'binance_pay',
+                    title: 'Binance Pay',
+                    description:
+                      'Pago mediante Pay ID.',
+                    icon: '⚡',
+                  },
+                  {
+                    id: 'usdt_trc20',
+                    title: 'USDT TRC20',
+                    description:
+                      'Red TRON (TRC20).',
+                    icon: '◎',
+                  },
+                ] as const
+              ).map((method) => {
+                const active =
+                  paymentMethod === method.id;
+
+                return (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() =>
+                      handlePaymentMethodChange(
+                        method.id,
+                      )
+                    }
+                    disabled={isSubmitting}
+                    aria-pressed={active}
+                    className={`
+                      rounded-2xl
+                      border
+                      p-4
+                      text-left
+                      transition
+                      focus:outline-none
+                      focus-visible:ring-2
+                      focus-visible:ring-amber-500
+                      ${
+                        active
+                          ? 'border-amber-500 bg-amber-500/10'
+                          : 'border-border bg-muted/30 hover:border-amber-500/50'
+                      }
+                    `}
+                  >
+                    <span className="block text-lg">
+                      {method.icon}
+                    </span>
+
+                    <span
+                      className={`
+                        mt-1 block
+                        text-sm font-bold
+                        ${
+                          active
+                            ? 'text-amber-500'
+                            : 'text-foreground'
+                        }
+                      `}
+                    >
+                      {method.title}
+                    </span>
+
+                    <span className="mt-1 block text-[10px] text-muted-foreground">
+                      {method.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          {/* ==================================================
+              INFORMACIÓN DE PAGO
+          ================================================== */}
+
+          <section
+            aria-label="Información de pago"
             className="
-              text-xs
-              font-semibold
-              text-muted-foreground
+              mt-6
+              rounded-2xl
+              border border-border
+              bg-muted/40
+              p-4
             "
           >
-            Método de pago
-          </legend>
+            {paymentMethod ===
+            'binance_pay' ? (
+              <>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Envía exactamente{' '}
+                  <strong className="text-foreground">
+                    ${formatUSDT(totalUSD)} USDT
+                  </strong>{' '}
+                  mediante Binance Pay utilizando el
+                  siguiente Pay ID:
+                </p>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() =>
-                handlePaymentMethodChange('binance_pay')
-              }
-              disabled={isSubmitting}
-              aria-pressed={
-                paymentMethod === 'binance_pay'
-              }
-              className={`
-                rounded-xl
-                border
-                p-3
-                text-left
-                transition
-                focus:outline-none
-                focus-visible:ring-2
-                focus-visible:ring-amber-500
-                disabled:cursor-not-allowed
-                disabled:opacity-60
-                ${
-                  paymentMethod === 'binance_pay'
-                    ? 'border-amber-500 bg-amber-500/10 text-amber-500'
-                    : 'border-border bg-muted/30 text-muted-foreground hover:border-amber-500/50'
-                }
-              `}
-            >
-              <span className="block text-sm font-bold">
-                ⚡ Binance Pay
-              </span>
+                <div className="mt-3 flex gap-3 rounded-xl border border-border bg-card p-3">
+                  <code className="min-w-0 flex-1 break-all font-mono text-sm font-bold text-foreground">
+                    {binancePayId ||
+                      'No configurado'}
+                  </code>
 
-              <span className="mt-1 block text-[10px] opacity-80">
-                Pago mediante Binance Pay ID.
-              </span>
-            </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleCopy(
+                        binancePayId,
+                        'binance',
+                      )
+                    }
+                    disabled={
+                      isSubmitting ||
+                      !binancePayId.trim()
+                    }
+                    className="
+                      shrink-0
+                      text-xs
+                      font-bold
+                      text-amber-500
+                      hover:underline
+                      disabled:opacity-50
+                    "
+                  >
+                    {copiedField ===
+                    'binance'
+                      ? 'Copiado'
+                      : 'Copiar'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Envía exactamente{' '}
+                  <strong className="text-foreground">
+                    ${formatUSDT(totalUSD)} USDT
+                  </strong>{' '}
+                  utilizando exclusivamente la red{' '}
+                  <strong className="text-foreground">
+                    TRON (TRC20)
+                  </strong>
+                  .
+                </p>
 
-            <button
-              type="button"
-              onClick={() =>
-                handlePaymentMethodChange('usdt_trc20')
-              }
-              disabled={isSubmitting}
-              aria-pressed={
-                paymentMethod === 'usdt_trc20'
-              }
-              className={`
-                rounded-xl
-                border
-                p-3
-                text-left
-                transition
-                focus:outline-none
-                focus-visible:ring-2
-                focus-visible:ring-amber-500
-                disabled:cursor-not-allowed
-                disabled:opacity-60
-                ${
-                  paymentMethod === 'usdt_trc20'
-                    ? 'border-amber-500 bg-amber-500/10 text-amber-500'
-                    : 'border-border bg-muted/30 text-muted-foreground hover:border-amber-500/50'
-                }
-              `}
-            >
-              <span className="block text-sm font-bold">
-                🌐 USDT TRC20
-              </span>
+                <div className="mt-3 flex gap-3 rounded-xl border border-border bg-card p-3">
+                  <code className="min-w-0 flex-1 break-all font-mono text-xs font-bold text-foreground">
+                    {usdtWalletAddress ||
+                      'No configurada'}
+                  </code>
 
-              <span className="mt-1 block text-[10px] opacity-80">
-                Red TRON (TRC20).
-              </span>
-            </button>
-          </div>
-        </fieldset>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleCopy(
+                        usdtWalletAddress,
+                        'wallet',
+                      )
+                    }
+                    disabled={
+                      isSubmitting ||
+                      !usdtWalletAddress.trim()
+                    }
+                    className="
+                      shrink-0
+                      text-xs
+                      font-bold
+                      text-amber-500
+                      hover:underline
+                      disabled:opacity-50
+                    "
+                  >
+                    {copiedField ===
+                    'wallet'
+                      ? 'Copiado'
+                      : 'Copiar'}
+                  </button>
+                </div>
 
-        {/* ==================================================
-            INSTRUCCIONES DE PAGO
-        ================================================== */}
-
-        <div
-          className="
-            mt-6
-            space-y-3
-            rounded-xl
-            border
-            border-border
-            bg-muted/50
-            p-4
-          "
-        >
-          {paymentMethod === 'binance_pay' ? (
-            <>
-              <p className="text-xs text-muted-foreground">
-                Envía el importe exacto mediante Binance Pay
-                utilizando el siguiente Pay ID:
-              </p>
-
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
-                <span className="min-w-0 flex-1 break-all font-mono text-sm font-bold text-foreground">
-                  {binancePayId || 'No configurado'}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleCopy(
-                      binancePayId,
-                      'binance',
-                    )
-                  }
-                  disabled={
-                    isSubmitting ||
-                    !binancePayId.trim()
-                  }
+                <div
                   className="
-                    shrink-0
-                    text-xs
-                    font-bold
-                    text-amber-500
-                    hover:underline
-                    disabled:cursor-not-allowed
-                    disabled:opacity-50
+                    mt-3
+                    rounded-xl
+                    border border-amber-500/20
+                    bg-amber-500/5
+                    p-3
+                    text-[10px]
+                    leading-5
+                    text-amber-600
+                    dark:text-amber-400
                   "
                 >
-                  {copiedField === 'binance'
-                    ? '¡Copiado!'
-                    : 'Copiar'}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-xs leading-5 text-muted-foreground">
-                Envía exactamente{' '}
-                <strong className="text-foreground">
-                  ${formatUSDT(totalUSD)} USDT
-                </strong>{' '}
-                utilizando la red{' '}
-                <strong className="text-foreground">
-                  TRON (TRC20)
-                </strong>
-                .
-              </p>
+                  Verifica cuidadosamente la red
+                  TRC20 y la dirección antes de enviar
+                  fondos. Una transferencia realizada
+                  a una red incorrecta puede resultar
+                  irreversible.
+                </div>
+              </>
+            )}
+          </section>
 
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
-                <span className="min-w-0 flex-1 break-all font-mono text-xs font-bold text-foreground">
-                  {usdtWalletAddress ||
-                    'No configurada'}
-                </span>
+          {/* ==================================================
+              CONFIRMACIÓN
+          ================================================== */}
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleCopy(
-                      usdtWalletAddress,
-                      'wallet',
-                    )
-                  }
-                  disabled={
-                    isSubmitting ||
-                    !usdtWalletAddress.trim()
-                  }
-                  className="
-                    shrink-0
-                    text-xs
-                    font-bold
-                    text-amber-500
-                    hover:underline
-                    disabled:cursor-not-allowed
-                    disabled:opacity-50
-                  "
-                >
-                  {copiedField === 'wallet'
-                    ? '¡Copiado!'
-                    : 'Copiar'}
-                </button>
-              </div>
-
-              <p className="text-[11px] leading-5 text-amber-600 dark:text-amber-400">
-                Verifica cuidadosamente la red y la
-                dirección antes de enviar fondos. Las
-                transferencias realizadas a una red o
-                dirección incorrecta pueden no ser
-                recuperables.
-              </p>
-            </>
-          )}
-        </div>
-
-        {/* ==================================================
-            REFERENCIA DE PAGO
-        ================================================== */}
-
-        <form
-          onSubmit={handleConfirmPayment}
-          className="mt-6 space-y-4"
-        >
-          <div>
+          <form
+            onSubmit={handleConfirmPayment}
+            className="mt-6"
+          >
             <label
               htmlFor="b2b-payment-reference"
               className="
-                mb-1
+                mb-2
                 block
                 text-xs
-                font-semibold
-                text-muted-foreground
+                font-bold
+                text-foreground
               "
             >
-              {paymentMethod === 'binance_pay'
-                ? 'Referencia / Order ID de Binance'
-                : 'Hash de la transacción (TXID)'}
+              {paymentMethod ===
+              'binance_pay'
+                ? 'Referencia / Order ID'
+                : 'TXID de la transacción'}
             </label>
 
             <input
@@ -932,16 +1029,17 @@ export default function B2BCheckoutModal({
               type="text"
               required
               maxLength={
-                MAX_TRANSACTION_REFERENCE_LENGTH
+                MAX_PAYMENT_REFERENCE_LENGTH
               }
               autoComplete="off"
               spellCheck={false}
-              placeholder={
-                paymentMethod === 'binance_pay'
-                  ? 'Ej.: 218391029381029'
-                  : 'Introduce el TXID de la transacción'
-              }
               value={paymentReference}
+              placeholder={
+                paymentMethod ===
+                'binance_pay'
+                  ? 'Ej.: 218391029381029'
+                  : 'Introduce el TXID de la operación'
+              }
               onChange={(event) => {
                 setPaymentReference(
                   event.target.value,
@@ -951,77 +1049,86 @@ export default function B2BCheckoutModal({
               disabled={isSubmitting}
               className="
                 w-full
-                rounded-xl
-                border
-                border-border
-                bg-muted/50
-                px-4
-                py-3
-                text-xs
+                rounded-2xl
+                border border-border
+                bg-background
+                px-4 py-3
+                text-sm
                 text-foreground
                 outline-none
                 transition
                 focus:border-amber-500
-                focus:ring-2
-                focus:ring-amber-500/20
-                disabled:cursor-not-allowed
+                focus:ring-4
+                focus:ring-amber-500/10
                 disabled:opacity-60
               "
             />
 
-            <p className="mt-1 text-[10px] text-muted-foreground">
-              La referencia se utilizará para la
-              verificación posterior del pago.
+            <p className="mt-2 text-[10px] leading-4 text-muted-foreground">
+              Esta referencia será almacenada para
+              permitir la posterior conciliación y
+              verificación del pago.
             </p>
-          </div>
+
+            <button
+              type="submit"
+              disabled={
+                isSubmitting ||
+                !paymentReference.trim() ||
+                !!successMessage
+              }
+              className="
+                mt-5
+                w-full
+                rounded-2xl
+                bg-amber-500
+                px-5 py-3.5
+                font-black
+                text-slate-950
+                shadow-lg
+                transition
+                hover:bg-amber-600
+                hover:shadow-xl
+                focus:outline-none
+                focus-visible:ring-4
+                focus-visible:ring-amber-500/30
+                disabled:cursor-not-allowed
+                disabled:opacity-50
+              "
+            >
+              {isSubmitting
+                ? 'Registrando solicitud…'
+                : successMessage
+                  ? 'Solicitud registrada'
+                  : 'Registrar Pedido Mayorista'}
+            </button>
+          </form>
 
           {/* ==================================================
-              BOTÓN
+              AVISO LEGAL / OPERATIVO
           ================================================== */}
 
-          <button
-            type="submit"
-            disabled={
-              isSubmitting ||
-              !paymentReference.trim() ||
-              !!successMessage
-            }
+          <div
             className="
-              w-full
+              mt-5
               rounded-xl
-              bg-amber-500
-              py-3
-              font-bold
-              text-slate-950
-              shadow-lg
-              transition
-              hover:bg-amber-600
-              focus:outline-none
-              focus-visible:ring-2
-              focus-visible:ring-amber-500
-              focus-visible:ring-offset-2
-              disabled:cursor-not-allowed
-              disabled:opacity-50
+              border border-border
+              bg-muted/30
+              p-3
             "
           >
-            {isSubmitting
-              ? 'Registrando orden...'
-              : successMessage
-                ? 'Orden registrada'
-                : 'Registrar Pedido B2B'}
-          </button>
-        </form>
-
-        {/* ==================================================
-            AVISO DE SEGURIDAD
-        ================================================== */}
-
-        <p className="mt-4 text-center text-[10px] leading-4 text-muted-foreground">
-          La recepción de esta solicitud no constituye por
-          sí misma confirmación del pago. La orden quedará
-          pendiente hasta completar la verificación
-          correspondiente.
-        </p>
+            <p className="text-center text-[10px] leading-5 text-muted-foreground">
+              <strong className="text-foreground">
+                Importante:
+              </strong>{' '}
+              registrar esta solicitud no constituye
+              confirmación de recepción de fondos.
+              La orden permanecerá pendiente hasta que
+              el pago sea validado por el procedimiento
+              correspondiente.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
