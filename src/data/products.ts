@@ -1,98 +1,11 @@
 // ==========================================================
 // ARCHIVO: src/data/products.ts
+// Catálogo de socios y productos afiliados
 // Credi Marketplace
-//
-// Catálogo de productos y plataformas afiliadas.
-//
-// IMPORTANTE:
-// - Este archivo contiene únicamente datos estáticos de afiliación.
-// - No representa productos almacenados en Supabase.
-// - No contiene secretos ni claves privadas.
-// - Las URLs de afiliación deben mantenerse como configuración
-//   pública y verificarse antes de producción.
 // ==========================================================
 
-/**
- * Idiomas soportados por el catálogo de afiliados.
- *
- * Debe mantenerse sincronizado con src/i18n/config.ts
- */
-export type AffiliateLocale = 'es' | 'en' | 'pt' | 'fr';
+import type { AffiliateProduct } from '@/types/affiliate';
 
-/**
- * Texto traducible para los idiomas soportados.
- */
-export type LocalizedText = Record<AffiliateLocale, string>;
-
-/**
- * Producto/plataforma afiliada.
- *
- * Este modelo es independiente de public.products.
- */
-export interface AffiliateProduct {
-  /**
-   * Identificador interno estable.
-   */
-  id: string;
-
-  /**
-   * Nombre comercial de la plataforma.
-   */
-  name: string;
-
-  /**
-   * Categoría traducida.
-   */
-  category: LocalizedText;
-
-  /**
-   * Título promocional.
-   */
-  title: string;
-
-  /**
-   * Descripción traducida.
-   */
-  description: LocalizedText;
-
-  /**
-   * Etiqueta promocional.
-   */
-  badge: string;
-
-  /**
-   * Clase visual utilizada por la interfaz.
-   *
-   * Nota:
-   * Idealmente estas clases deberían migrarse posteriormente
-   * a una configuración visual centralizada.
-   */
-  badgeColor: string;
-
-  /**
-   * Identificador del icono utilizado por la UI.
-   */
-  icon: string;
-
-  /**
-   * URL de destino afiliada.
-   */
-  url: string;
-
-  /**
-   * Texto del botón traducido.
-   */
-  buttonText: LocalizedText;
-}
-
-/**
- * Catálogo de plataformas afiliadas.
- *
- * IMPORTANTE:
- * Las URLs pueden generar comisiones de afiliación.
- * Deben presentarse al usuario de acuerdo con las obligaciones
- * legales y las políticas aplicables al programa de afiliados.
- */
 export const affiliateProducts: readonly AffiliateProduct[] = [
   {
     id: 'amazon',
@@ -105,13 +18,18 @@ export const affiliateProducts: readonly AffiliateProduct[] = [
       fr: 'Technologie & Maison',
     },
 
-    title: 'Amazon Global Store',
+    title: {
+      es: 'Amazon Global Store',
+      en: 'Amazon Global Store',
+      pt: 'Amazon Global Store',
+      fr: 'Amazon Global Store',
+    },
 
     description: {
-      es: 'Compra internacional con opciones de envío global y productos de múltiples categorías.',
-      en: 'International shopping with global shipping options and products across multiple categories.',
-      pt: 'Compras internacionais com opções de envio global e produtos de várias categorias.',
-      fr: 'Achats internationaux avec options de livraison mondiale et produits de plusieurs catégories.',
+      es: 'Compra internacional con acceso a productos y vendedores disponibles en la plataforma.',
+      en: 'International shopping with access to products and sellers available on the platform.',
+      pt: 'Compras internacionais com acesso a produtos e vendedores disponíveis na plataforma.',
+      fr: 'Achats internationaux avec accès aux produits et vendeurs disponibles sur la plateforme.',
     },
 
     badge: 'Amazon Partner',
@@ -121,16 +39,16 @@ export const affiliateProducts: readonly AffiliateProduct[] = [
     url: 'https://amzn.to/4bJJq22',
 
     buttonText: {
-      es: 'Comprar Ahora →',
-      en: 'Buy Now →',
-      pt: 'Comprar Agora →',
-      fr: 'Acheter →',
+      es: 'Comprar ahora →',
+      en: 'Shop now →',
+      pt: 'Comprar agora →',
+      fr: 'Acheter maintenant →',
     },
   },
 
   {
     id: 'shein',
-    name: 'Shein Fashion',
+    name: 'SHEIN Fashion',
 
     category: {
       es: 'Moda & Tendencias',
@@ -139,32 +57,37 @@ export const affiliateProducts: readonly AffiliateProduct[] = [
       fr: 'Mode & Tendances',
     },
 
-    title: 'Shein Global Fashion',
-
-    description: {
-      es: 'Moda, ropa y accesorios con opciones de compra internacional.',
-      en: 'Fashion, clothing, and accessories with international shopping options.',
-      pt: 'Moda, roupas e acessórios com opções de compras internacionais.',
-      fr: 'Mode, vêtements et accessoires avec options d’achat international.',
+    title: {
+      es: 'SHEIN Global Fashion',
+      en: 'SHEIN Global Fashion',
+      pt: 'SHEIN Global Fashion',
+      fr: 'SHEIN Global Fashion',
     },
 
-    badge: 'Shein Oficial',
+    description: {
+      es: 'Moda, ropa y accesorios con una amplia variedad de estilos y tendencias.',
+      en: 'Fashion, clothing and accessories with a wide variety of styles and trends.',
+      pt: 'Moda, roupas e acessórios com uma grande variedade de estilos e tendências.',
+      fr: 'Mode, vêtements et accessoires avec une grande variété de styles et tendances.',
+    },
+
+    badge: 'SHEIN Partner',
     badgeColor: 'bg-rose-500',
     icon: 'fa-shirt',
 
     url: 'https://onelink.shein.com/44/5wyleaujbj2iI',
 
     buttonText: {
-      es: 'Ver Colección →',
-      en: 'View Collection →',
-      pt: 'Ver Coleção →',
-      fr: 'Voir Collection →',
+      es: 'Ver colección →',
+      en: 'View collection →',
+      pt: 'Ver coleção →',
+      fr: 'Voir la collection →',
     },
   },
 
   {
     id: 'aliexpress',
-    name: 'AliExpress Direct',
+    name: 'AliExpress',
 
     category: {
       es: 'Gadgets & Ofertas',
@@ -173,26 +96,31 @@ export const affiliateProducts: readonly AffiliateProduct[] = [
       fr: 'Gadgets & Offres',
     },
 
-    title: 'AliExpress Direct',
-
-    description: {
-      es: 'Productos, electrónica y accesorios disponibles mediante compras internacionales.',
-      en: 'Products, electronics, and accessories available through international shopping.',
-      pt: 'Produtos, eletrônicos e acessórios disponíveis para compras internacionais.',
-      fr: 'Produits, électronique et accessoires disponibles pour les achats internationaux.',
+    title: {
+      es: 'AliExpress Direct',
+      en: 'AliExpress Direct',
+      pt: 'AliExpress Direct',
+      fr: 'AliExpress Direct',
     },
 
-    badge: 'AliExpress Deal',
+    description: {
+      es: 'Productos, electrónica, accesorios y artículos de múltiples categorías.',
+      en: 'Products, electronics, accessories and items across multiple categories.',
+      pt: 'Produtos, eletrônicos, acessórios e artigos de várias categorias.',
+      fr: 'Produits, électronique, accessoires et articles de plusieurs catégories.',
+    },
+
+    badge: 'AliExpress Partner',
     badgeColor: 'bg-red-600',
     icon: 'fa-bag-shopping',
 
     url: 'https://s.click.aliexpress.com/e/_c33p0iw',
 
     buttonText: {
-      es: 'Aprovechar Oferta →',
-      en: 'Get Deal →',
-      pt: 'Aproveitar Oferta →',
-      fr: 'Profiter →',
+      es: 'Ver oferta →',
+      en: 'View deal →',
+      pt: 'Ver oferta →',
+      fr: 'Voir l’offre →',
     },
   },
 
@@ -201,32 +129,37 @@ export const affiliateProducts: readonly AffiliateProduct[] = [
     name: 'Alibaba Wholesale',
 
     category: {
-      es: 'Al Mayor B2B',
-      en: 'Wholesale B2B',
+      es: 'Mayorista B2B',
+      en: 'B2B Wholesale',
       pt: 'Atacado B2B',
-      fr: 'Gros B2B',
+      fr: 'Grossiste B2B',
     },
 
-    title: 'Alibaba Wholesale',
+    title: {
+      es: 'Alibaba Wholesale',
+      en: 'Alibaba Wholesale',
+      pt: 'Alibaba Wholesale',
+      fr: 'Alibaba Wholesale',
+    },
 
     description: {
-      es: 'Plataforma internacional orientada a compras mayoristas y relaciones comerciales B2B.',
-      en: 'International platform focused on wholesale purchasing and B2B business relationships.',
-      pt: 'Plataforma internacional focada em compras no atacado e relações comerciais B2B.',
-      fr: 'Plateforme internationale dédiée aux achats en gros et aux relations commerciales B2B.',
+      es: 'Conexión con proveedores y fabricantes para compras al por mayor y operaciones B2B.',
+      en: 'Connect with suppliers and manufacturers for wholesale and B2B purchasing.',
+      pt: 'Conecte-se a fornecedores e fabricantes para compras no atacado e operações B2B.',
+      fr: 'Connectez-vous aux fournisseurs et fabricants pour les achats en gros et opérations B2B.',
     },
 
-    badge: 'Alibaba Mayor',
+    badge: 'Alibaba Partner',
     badgeColor: 'bg-orange-500',
     icon: 'fa-boxes-stacked',
 
-    url: 'https://offer.alibaba.com/cps/t9vapivb?',
+    url: 'https://offer.alibaba.com/cps/t9vapivb?bm=cps&src=saf',
 
     buttonText: {
-      es: 'Cotizar Mayorista →',
-      en: 'Wholesale Quote →',
-      pt: 'Cotação Atacado →',
-      fr: 'Devis Gros →',
+      es: 'Cotizar al mayor →',
+      en: 'Get wholesale quote →',
+      pt: 'Solicitar cotação →',
+      fr: 'Demander un devis →',
     },
   },
 ] as const;
