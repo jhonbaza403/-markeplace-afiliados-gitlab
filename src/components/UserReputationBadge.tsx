@@ -1,78 +1,171 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase/client';
 
 interface UserReputationBadgeProps {
-  userId: string
+  userId: string;
+  className?: string;
 }
 
-export default function UserReputationBadge({ userId }: UserReputationBadgeProps) {
-  const [avgRating, setAvgRating] = useState<number | null>(null)
-  const [totalRatings, setTotalRatings] = useState<number>(0)
-  const [isActive, setIsActive] = useState<boolean>(true)
-  const [loading, setLoading] = useState(true)
+interface ReputationState {
+  average: number | null;
+  total: number;
+}
+
+export default function UserReputationBadge({
+  userId,
+  className = '',
+}: UserReputationBadgeProps) {
+  const [reputation, setReputation] = useState<ReputationState>({
+    average: null,
+    total: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     async function fetchReputation() {
-      try {
-        const supabase = createClient()
+      if (!userId) {
+        if (mounted) {
+          setReputation({
+            average: null,
+            total: 0,
+          });
 
-        // 1. Obtener perfil para ver si está activo
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_active')
-          .eq('id', userId)
-          .single()
-
-        if (profile && typeof profile.is_active === 'boolean') {
-          setIsActive(profile.is_active)
+          setLoading(false);
         }
 
-        // 2. Calcular promedio de calificaciones
-        const { data: ratings, error } = await supabase
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        /*
+         * En esta primera versión consultamos únicamente las
+         * calificaciones públicas del usuario.
+         *
+         * La reputación NO debe depender de campos administrativos
+         * como profiles.is_active.
+         */
+        const { data, error } = await supabase
           .from('ratings')
           .select('rating')
-          .eq('target_user_id', userId)
+          .eq('target_user_id', userId);
 
-        if (!error && ratings && ratings.length > 0) {
-          const sum = ratings.reduce((acc, curr) => acc + curr.rating, 0)
-          setAvgRating(Number((sum / ratings.length).toFixed(1)))
-          setTotalRatings(ratings.length)
+        if (error) {
+          throw error;
         }
-      } catch (err) {
-        console.error('Error cargando reputación:', err)
+
+        if (!mounted) return;
+
+        if (!data || data.length === 0) {
+          setReputation({
+            average: null,
+            total: 0,
+          });
+
+          return;
+        }
+
+        const validRatings = data.filter(
+          (item): item is { rating: number } =>
+            typeof item.rating === 'number' &&
+            Number.isFinite(item.rating) &&
+            item.rating >= 1 &&
+            item.rating <= 5
+        );
+
+        if (validRatings.length === 0) {
+          setReputation({
+            average: null,
+            total: 0,
+          });
+
+          return;
+        }
+
+        const total = validRatings.length;
+
+        const sum = validRatings.reduce(
+          (accumulator, item) => accumulator + item.rating,
+          0
+        );
+
+        const average = Number((sum / total).toFixed(1));
+
+        setReputation({
+          average,
+          total,
+        });
+      } catch (error) {
+        console.error(
+          '[UserReputationBadge] Error loading reputation:',
+          error
+        );
+
+        if (!mounted) return;
+
+        setReputation({
+          average: null,
+          total: 0,
+        });
       } finally {
-        setLoading(false)
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
 
-    if (userId) {
-      fetchReputation()
-    }
-  }, [userId])
+    void fetchReputation();
+
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
 
   if (loading) {
-    return <span className="text-xs text-muted-foreground animate-pulse">Cargando reputación...</span>
+    return (
+      <span
+        className={`inline-flex items-center text-xs text-muted-foreground animate-pulse ${className}`}
+        aria-live="polite"
+      >
+        Cargando reputación…
+      </span>
+    );
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {!isActive ? (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20">
-          ⚠️ Cuenta Suspendida por Fraude
-        </span>
-      ) : (
-        <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full border border-border">
-          <span className="text-amber-400 text-sm">★</span>
-          <span className="text-xs font-bold text-foreground">
-            {avgRating !== null ? avgRating : 'Nuevo'}
-          </span>
-          <span className="text-[11px] text-muted-foreground">
-            ({totalRatings} {totalRatings === 1 ? 'opinión' : 'opiniones'})
-          </span>
-        </div>
-      )}
+    <div
+      className={`inline-flex items-center gap-1.5 ${className}`}
+      aria-label={
+        reputation.average !== null
+          ? `Calificación ${reputation.average} de 5 basada en ${reputation.total} ${
+              reputation.total === 1 ? 'opinión' : 'opiniones'
+            }`
+          : 'Usuario sin calificaciones'
+      }
+    >
+      <span
+        className="text-amber-400 text-sm leading-none"
+        aria-hidden="true"
+      >
+        ★
+      </span>
+
+      <span className="text-xs font-bold text-foreground">
+        {reputation.average !== null ? reputation.average.toFixed(1) : 'Nuevo'}
+      </span>
+
+      <span className="text-[11px] text-muted-foreground">
+        (
+        {reputation.total}{' '}
+        {reputation.total === 1 ? 'opinión' : 'opiniones'}
+        )
+      </span>
     </div>
-  )
+  );
 }
