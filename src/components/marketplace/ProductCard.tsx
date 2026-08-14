@@ -1,48 +1,190 @@
-'use client';
+'use client'
 
-import React from 'react';
-import Link from 'next/link';
-import { Product } from '@/types/products';
+import React from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { Product } from '@/types/products'
 
 interface ProductCardProps {
-  product: Product;
+  product: Product
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const title = product.title?.trim() || 'Producto sin título'
+  const description =
+    product.description?.trim() || 'Sin descripción disponible'
+
+  const imageUrl =
+    Array.isArray(product.images) && product.images.length > 0
+      ? product.images[0]
+      : null
+
+  const currency = product.currency || 'USD'
+
+  const formattedPrice = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(product.price ?? 0)
+
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:shadow-md">
-      <div className="h-48 w-full bg-gray-100">
-        {product.images && product.images[0] ? (
-          <img
-            src={product.images[0]}
-            alt={product.title}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-gray-400">
-            Sin imagen
+    <article
+      className="
+        group flex h-full flex-col overflow-hidden
+        rounded-2xl border border-slate-200
+        bg-white shadow-sm
+        transition-all duration-300
+        hover:-translate-y-1 hover:shadow-xl
+      "
+    >
+      {/* =====================================================
+          IMAGEN
+      ====================================================== */}
+      <Link
+        href={`/marketplace/products/${product.id}`}
+        aria-label={`Ver detalles de ${title}`}
+        className="block"
+      >
+        <div className="relative h-52 w-full overflow-hidden bg-slate-100">
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={title}
+              fill
+              sizes="
+                (max-width: 640px) 100vw,
+                (max-width: 1024px) 50vw,
+                25vw
+              "
+              className="
+                object-cover
+                transition-transform duration-500
+                group-hover:scale-105
+              "
+            />
+          ) : (
+            <div
+              className="
+                flex h-full w-full
+                items-center justify-center
+                bg-slate-100
+                text-slate-400
+              "
+              aria-label="Producto sin imagen"
+            >
+              <div className="text-center">
+                <div className="mb-2 text-3xl" aria-hidden="true">
+                  📦
+                </div>
+
+                <span className="text-xs font-medium">
+                  Sin imagen
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Indicador visual */}
+          <div
+            className="
+              absolute left-3 top-3
+              rounded-full
+              bg-black/60
+              px-2.5 py-1
+              text-[10px]
+              font-bold
+              uppercase
+              tracking-wide
+              text-white
+              backdrop-blur-sm
+            "
+          >
+            Marketplace
           </div>
-        )}
-      </div>
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
-          {product.title}
-        </h3>
-        <p className="mt-1 text-sm text-gray-500 line-clamp-2">
-          {product.description}
+        </div>
+      </Link>
+
+      {/* =====================================================
+          INFORMACIÓN
+      ====================================================== */}
+      <div className="flex flex-1 flex-col p-5">
+
+        {/* TÍTULO */}
+        <Link
+          href={`/marketplace/products/${product.id}`}
+          className="focus:outline-none"
+        >
+          <h3
+            className="
+              line-clamp-2
+              text-base
+              font-bold
+              leading-tight
+              text-slate-900
+              transition-colors
+              group-hover:text-indigo-600
+            "
+          >
+            {title}
+          </h3>
+        </Link>
+
+        {/* DESCRIPCIÓN */}
+        <p
+          className="
+            mt-2
+            line-clamp-3
+            text-sm
+            leading-relaxed
+            text-slate-500
+          "
+        >
+          {description}
         </p>
-        <div className="mt-auto pt-4 flex items-center justify-between">
-          <span className="text-xl font-bold text-indigo-600">
-            {product.currency} ${product.price.toFixed(2)}
-          </span>
+
+        {/* ===================================================
+            PRECIO + ACCIÓN
+        ==================================================== */}
+        <div className="mt-auto flex items-end justify-between gap-4 pt-5">
+
+          {/* PRECIO */}
+          <div>
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              Precio
+            </span>
+
+            <span className="text-xl font-extrabold text-indigo-600">
+              {formattedPrice}
+            </span>
+          </div>
+
+          {/* DETALLE */}
           <Link
             href={`/marketplace/products/${product.id}`}
-            className="rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-100"
+            className="
+              shrink-0
+              rounded-xl
+              bg-indigo-50
+              px-3.5 py-2
+              text-xs
+              font-bold
+              text-indigo-600
+              transition-all
+              hover:bg-indigo-600
+              hover:text-white
+              focus:outline-none
+              focus:ring-2
+              focus:ring-indigo-500
+              focus:ring-offset-2
+            "
           >
-            Ver Detalle
+            Ver detalle
           </Link>
         </div>
       </div>
-    </div>
-  );
-};
+    </article>
+  )
+}
+
+export default ProductCard
