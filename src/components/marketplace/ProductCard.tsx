@@ -3,50 +3,158 @@
 import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+
 import { Product } from '@/types/products'
+
+// ==========================================================
+// ARCHIVO: src/components/marketplace/ProductCard.tsx
+// Credi Marketplace
+//
+// TARJETA PREMIUM DE PRODUCTO
+//
+// Características:
+// - Compatible con Next.js Image
+// - Enlace al detalle del producto
+// - Manejo seguro de título y descripción
+// - Manejo de productos sin imagen
+// - Formateo internacional de moneda
+// - Diseño responsive
+// - Accesibilidad
+// - Estados hover/focus
+// - Estructura preparada para Marketplace
+// ==========================================================
+
+// ==========================================================
+// TIPOS
+// ==========================================================
 
 interface ProductCardProps {
   product: Product
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const title = product.title?.trim() || 'Producto sin título'
+// ==========================================================
+// COMPONENTE
+// ==========================================================
+
+export const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+}) => {
+  // ========================================================
+  // NORMALIZACIÓN
+  // ========================================================
+
+  const productId = product.id
+
+  const title =
+    typeof product.title === 'string' &&
+    product.title.trim().length > 0
+      ? product.title.trim()
+      : 'Producto sin título'
+
   const description =
-    product.description?.trim() || 'Sin descripción disponible'
+    typeof product.description === 'string' &&
+    product.description.trim().length > 0
+      ? product.description.trim()
+      : 'Sin descripción disponible'
+
+  // ========================================================
+  // IMAGEN
+  // ========================================================
 
   const imageUrl =
-    Array.isArray(product.images) && product.images.length > 0
-      ? product.images[0]
+    Array.isArray(product.images) &&
+    product.images.length > 0 &&
+    typeof product.images[0] === 'string' &&
+    product.images[0].trim().length > 0
+      ? product.images[0].trim()
       : null
 
-  const currency = product.currency || 'USD'
+  // ========================================================
+  // MONEDA
+  // ========================================================
 
-  const formattedPrice = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(product.price ?? 0)
+  const currency =
+    typeof product.currency === 'string' &&
+    product.currency.trim().length > 0
+      ? product.currency.trim().toUpperCase()
+      : 'USD'
+
+  // ========================================================
+  // PRECIO
+  // ========================================================
+
+  const numericPrice =
+    typeof product.price === 'number' &&
+    Number.isFinite(product.price)
+      ? product.price
+      : 0
+
+  const formattedPrice = new Intl.NumberFormat(
+    'en-US',
+    {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    },
+  ).format(numericPrice)
+
+  // ========================================================
+  // URL DEL PRODUCTO
+  // ========================================================
+
+  const productHref =
+    `/marketplace/products/${encodeURIComponent(
+      String(productId),
+    )}`
+
+  // ========================================================
+  // RENDER
+  // ========================================================
 
   return (
     <article
       className="
-        group flex h-full flex-col overflow-hidden
-        rounded-2xl border border-slate-200
-        bg-white shadow-sm
-        transition-all duration-300
-        hover:-translate-y-1 hover:shadow-xl
+        group
+        flex
+        h-full
+        flex-col
+        overflow-hidden
+        rounded-2xl
+        border
+        border-slate-200
+        bg-white
+        shadow-sm
+        transition-all
+        duration-300
+        hover:-translate-y-1
+        hover:shadow-xl
+        focus-within:ring-2
+        focus-within:ring-indigo-500
+        focus-within:ring-offset-2
       "
     >
-      {/* =====================================================
+      {/* ====================================================
           IMAGEN
-      ====================================================== */}
+      ===================================================== */}
+
       <Link
-        href={`/marketplace/products/${product.id}`}
+        href={productHref}
         aria-label={`Ver detalles de ${title}`}
-        className="block"
+        className="
+          block
+          focus:outline-none
+        "
       >
-        <div className="relative h-52 w-full overflow-hidden bg-slate-100">
+        <div
+          className="
+            relative
+            h-52
+            w-full
+            overflow-hidden
+            bg-slate-100
+          "
+        >
           {imageUrl ? (
             <Image
               src={imageUrl}
@@ -59,22 +167,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               "
               className="
                 object-cover
-                transition-transform duration-500
+                transition-transform
+                duration-500
                 group-hover:scale-105
               "
             />
           ) : (
             <div
               className="
-                flex h-full w-full
-                items-center justify-center
+                flex
+                h-full
+                w-full
+                items-center
+                justify-center
                 bg-slate-100
                 text-slate-400
               "
+              role="img"
               aria-label="Producto sin imagen"
             >
               <div className="text-center">
-                <div className="mb-2 text-3xl" aria-hidden="true">
+                <div
+                  className="mb-2 text-3xl"
+                  aria-hidden="true"
+                >
                   📦
                 </div>
 
@@ -85,13 +201,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
           )}
 
-          {/* Indicador visual */}
+          {/* ==================================================
+              ETIQUETA
+          ================================================== */}
+
           <div
             className="
-              absolute left-3 top-3
+              absolute
+              left-3
+              top-3
               rounded-full
               bg-black/60
-              px-2.5 py-1
+              px-2.5
+              py-1
               text-[10px]
               font-bold
               uppercase
@@ -105,15 +227,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
       </Link>
 
-      {/* =====================================================
+      {/* ====================================================
           INFORMACIÓN
-      ====================================================== */}
-      <div className="flex flex-1 flex-col p-5">
+      ===================================================== */}
 
-        {/* TÍTULO */}
+      <div
+        className="
+          flex
+          flex-1
+          flex-col
+          p-5
+        "
+      >
+        {/* ==================================================
+            TÍTULO
+        ================================================== */}
+
         <Link
-          href={`/marketplace/products/${product.id}`}
-          className="focus:outline-none"
+          href={productHref}
+          aria-label={`Ver ${title}`}
+          className="
+            rounded-lg
+            focus:outline-none
+            focus-visible:ring-2
+            focus-visible:ring-indigo-500
+            focus-visible:ring-offset-2
+          "
         >
           <h3
             className="
@@ -130,7 +269,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </h3>
         </Link>
 
-        {/* DESCRIPCIÓN */}
+        {/* ==================================================
+            DESCRIPCIÓN
+        ================================================== */}
+
         <p
           className="
             mt-2
@@ -143,30 +285,62 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {description}
         </p>
 
-        {/* ===================================================
+        {/* ==================================================
             PRECIO + ACCIÓN
-        ==================================================== */}
-        <div className="mt-auto flex items-end justify-between gap-4 pt-5">
+        ================================================== */}
 
-          {/* PRECIO */}
+        <div
+          className="
+            mt-auto
+            flex
+            items-end
+            justify-between
+            gap-4
+            pt-5
+          "
+        >
+          {/* =================================================
+              PRECIO
+          ================================================== */}
+
           <div>
-            <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            <span
+              className="
+                block
+                text-[10px]
+                font-semibold
+                uppercase
+                tracking-wider
+                text-slate-400
+              "
+            >
               Precio
             </span>
 
-            <span className="text-xl font-extrabold text-indigo-600">
+            <span
+              className="
+                text-xl
+                font-extrabold
+                text-indigo-600
+              "
+              aria-label={`Precio ${formattedPrice}`}
+            >
               {formattedPrice}
             </span>
           </div>
 
-          {/* DETALLE */}
+          {/* =================================================
+              BOTÓN DETALLE
+          ================================================== */}
+
           <Link
-            href={`/marketplace/products/${product.id}`}
+            href={productHref}
             className="
               shrink-0
               rounded-xl
               bg-indigo-50
-              px-3.5 py-2
+              px-3.5
+              py-2
               text-xs
               font-bold
               text-indigo-600
