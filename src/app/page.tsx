@@ -1,225 +1,451 @@
 // ==========================================================
 // ARCHIVO: src/app/page.tsx
-// Landing Page Principal del Marketplace
+// Credi Marketplace — Landing Page Principal
+//
+// Next.js 16.3
+// React 19
+// React Compiler
+// Server Component
 // ==========================================================
 
 import Link from 'next/link';
+import type { ReactNode } from 'react';
+import {
+  ArrowRight,
+  Building2,
+  Globe2,
+  LockKeyhole,
+  ShoppingBag,
+  Sparkles,
+  Store,
+  Users,
+} from 'lucide-react';
+
+// ==========================================================
+// TIPOS
+// ==========================================================
+
+interface Feature {
+  readonly title: string;
+  readonly description: string;
+  readonly icon: ReactNode;
+  readonly iconClassName: string;
+  readonly iconBackgroundClassName: string;
+}
+
+interface NavigationColumn {
+  readonly title: string;
+  readonly links: ReadonlyArray<{
+    readonly href: string;
+    readonly label: string;
+  }>;
+}
+
+// ==========================================================
+// DATOS ESTÁTICOS
+// ==========================================================
+
+const features: ReadonlyArray<Feature> = [
+  {
+    title: 'Comercio seguro',
+    description:
+      'Una infraestructura diseñada para facilitar operaciones comerciales con controles de acceso y protección de datos.',
+    icon: <LockKeyhole aria-hidden="true" className="size-7" />,
+    iconClassName: 'text-brand-600',
+    iconBackgroundClassName:
+      'bg-brand-100 ring-brand-500/20 dark:bg-brand-950 dark:ring-brand-400/20',
+  },
+  {
+    title: 'Alcance internacional',
+    description:
+      'Conecta compradores, vendedores, profesionales y empresas más allá de las fronteras.',
+    icon: <Globe2 aria-hidden="true" className="size-7" />,
+    iconClassName: 'text-cyan-600 dark:text-cyan-400',
+    iconBackgroundClassName:
+      'bg-cyan-100 ring-cyan-500/20 dark:bg-cyan-950 dark:ring-cyan-400/20',
+  },
+  {
+    title: 'B2B y B2C',
+    description:
+      'Una plataforma preparada para operaciones comerciales al detal y relaciones comerciales mayoristas.',
+    icon: <Building2 aria-hidden="true" className="size-7" />,
+    iconClassName: 'text-indigo-600 dark:text-indigo-400',
+    iconBackgroundClassName:
+      'bg-indigo-100 ring-indigo-500/20 dark:bg-indigo-950 dark:ring-indigo-400/20',
+  },
+];
+
+const navigationColumns: ReadonlyArray<NavigationColumn> = [
+  {
+    title: 'Navegación',
+    links: [
+      { href: '/explorar', label: 'Explorar' },
+      { href: '/ofertas', label: 'Ofertas' },
+      { href: '/productos', label: 'Productos' },
+      { href: '/servicios', label: 'Servicios' },
+    ],
+  },
+  {
+    title: 'Comercio',
+    links: [
+      { href: '/vender', label: 'Vender en Credi' },
+      { href: '/categorias', label: 'Categorías' },
+      { href: '/b2b', label: 'Portal B2B' },
+    ],
+  },
+  {
+    title: 'Cuenta',
+    links: [
+      { href: '/login', label: 'Ingresar' },
+      { href: '/registro', label: 'Crear cuenta' },
+      { href: '/soporte', label: 'Centro de ayuda' },
+    ],
+  },
+];
+
+// ==========================================================
+// COMPONENTE PRINCIPAL
+// ==========================================================
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-white selection:bg-blue-500/30">
-      {/* =========================================================
-          HERO SECTION (Premium Dark)
-      ========================================================== */}
-      <section className="relative overflow-hidden bg-slate-950 text-white">
-        {/* Decoración de fondo (Glow) */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-blue-600/20 blur-[128px]" />
-          <div className="absolute top-1/2 right-0 h-96 w-96 -translate-y-1/2 rounded-full bg-cyan-500/10 blur-[128px]" />
+    <>
+      {/* ======================================================
+          HERO
+      ======================================================= */}
+
+      <section
+        aria-labelledby="hero-title"
+        className="relative isolate overflow-hidden bg-neutral-950 text-white"
+      >
+        {/* Fondo decorativo */}
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10"
+        >
+          <div className="absolute -left-40 -top-40 size-[30rem] rounded-full bg-brand-600/20 blur-[120px]" />
+
+          <div className="absolute -right-40 top-1/2 size-[30rem] -translate-y-1/2 rounded-full bg-cyan-500/10 blur-[120px]" />
+
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.04),transparent_55%)]" />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-24 sm:py-32 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-400 backdrop-blur-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
+        <div className="container-marketplace relative py-24 sm:py-32 lg:py-40">
+          <div className="mx-auto max-w-4xl text-center">
+            {/* Badge */}
+
+            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-brand-400/20 bg-brand-400/10 px-4 py-2 text-sm font-medium text-brand-200 backdrop-blur-md">
+              <span
+                aria-hidden="true"
+                className="relative flex size-2"
+              >
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand-400 opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-brand-400" />
               </span>
-              Plataforma Comercial Global B2B & B2C
-            </span>
-            
-            <h1 className="text-5xl font-black tracking-tight text-white sm:text-7xl">
-              El ecosistema digital para <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">crecer sin límites</span>
+
+              <span>Plataforma comercial B2B &amp; B2C</span>
+            </div>
+
+            {/* Título */}
+
+            <h1
+              id="hero-title"
+              className="text-balance text-4xl font-black tracking-tight text-white sm:text-6xl lg:text-7xl"
+            >
+              El ecosistema digital para{' '}
+              <span className="bg-linear-to-r from-brand-300 via-cyan-300 to-cyan-400 bg-clip-text text-transparent">
+                crecer sin límites
+              </span>
             </h1>
-            
-            <p className="mt-6 text-lg leading-8 text-slate-300 sm:text-xl">
-              Compra, vende y ofrece servicios en Credi Marketplace. Conectamos empresas y profesionales con oportunidades reales en un entorno seguro y de alta conversión.
+
+            {/* Descripción */}
+
+            <p className="mx-auto mt-7 max-w-3xl text-pretty text-lg leading-8 text-neutral-300 sm:text-xl">
+              Compra, vende y desarrolla oportunidades comerciales en Credi
+              Marketplace. Una plataforma diseñada para conectar personas,
+              profesionales, empresas y proveedores.
             </p>
-            
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+
+            {/* CTAs */}
+
+            <div className="mt-10 flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center">
               <Link
                 href="/explorar"
-                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-4 font-bold text-white shadow-lg shadow-blue-900/40 transition-all duration-300 hover:scale-105 hover:bg-blue-500 sm:w-auto"
+                className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 px-7 py-3.5 font-bold text-white shadow-lg shadow-brand-950/40 transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-300"
               >
                 Explorar mercado
-                <svg className="h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
+
+                <ArrowRight
+                  aria-hidden="true"
+                  className="size-5 transition-transform duration-200 group-hover:translate-x-1"
+                />
               </Link>
+
               <Link
                 href="/vender"
-                className="flex w-full items-center justify-center rounded-xl border border-slate-700 bg-slate-800/50 px-8 py-4 font-bold text-white backdrop-blur-md transition-all duration-300 hover:border-slate-500 hover:bg-slate-800 sm:w-auto"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 font-bold text-white backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
                 Empieza a vender
               </Link>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* =========================================================
-          STATS SECTION
-      ========================================================== */}
-      <section className="border-y border-slate-200 bg-slate-50">
-        <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
-          <dl className="grid grid-cols-2 gap-x-8 gap-y-6 text-center lg:grid-cols-4">
-            {[
-              { id: 1, name: 'Usuarios Activos', value: '+10,000' },
-              { id: 2, name: 'Transacciones Seguras', value: '100%' },
-              { id: 3, name: 'Países Soportados', value: '+15' },
-              { id: 4, name: 'Categorías', value: '50+' },
-            ].map((stat) => (
-              <div key={stat.id} className="flex flex-col gap-y-2">
-                <dt className="text-sm font-medium text-slate-500">{stat.name}</dt>
-                <dd className="text-3xl font-black tracking-tight text-slate-900">{stat.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
+          {/* Indicadores de ecosistema */}
 
-      {/* =========================================================
-          FEATURES SECTION
-      ========================================================== */}
-      <section className="py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-4 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-              Todo lo que necesitas para tu negocio
-            </h2>
-            <p className="mt-4 text-lg text-slate-600">
-              Diseñamos nuestra plataforma con las mejores herramientas para que te enfoques en lo que realmente importa: vender.
-            </p>
+          <div className="mx-auto mt-20 grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4">
+            <HeroMetric
+              icon={<Users aria-hidden="true" className="size-5" />}
+              label="Comunidad"
+              value="Global"
+            />
+
+            <HeroMetric
+              icon={<ShoppingBag aria-hidden="true" className="size-5" />}
+              label="Modelo"
+              value="B2C"
+            />
+
+            <HeroMetric
+              icon={<Building2 aria-hidden="true" className="size-5" />}
+              label="Empresas"
+              value="B2B"
+            />
+
+            <HeroMetric
+              icon={<Store aria-hidden="true" className="size-5" />}
+              label="Comercio"
+              value="Digital"
+            />
           </div>
+        </div>
+      </section>
 
-          <div className="mx-auto mt-16 max-w-5xl sm:mt-20">
-            <div className="grid grid-cols-1 gap-12 sm:grid-cols-3">
-              {/* Feature 1 */}
-              <div className="relative flex flex-col items-center text-center">
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 ring-1 ring-blue-500/20">
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">Transacciones Seguras</h3>
-                <p className="mt-2 text-slate-600">Sistema de pagos protegido y verificación de identidad para operar con total tranquilidad.</p>
-              </div>
+      {/* ======================================================
+          PROPUESTA DE VALOR
+      ======================================================= */}
 
-              {/* Feature 2 */}
-              <div className="relative flex flex-col items-center text-center">
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-600 ring-1 ring-cyan-500/20">
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">Alcance Internacional</h3>
-                <p className="mt-2 text-slate-600">Llega a clientes en diferentes países con soporte multimoneda (FIAT y Crypto).</p>
-              </div>
-
-              {/* Feature 3 */}
-              <div className="relative flex flex-col items-center text-center">
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 ring-1 ring-indigo-500/20">
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">Mercado B2B & B2C</h3>
-                <p className="mt-2 text-slate-600">Herramientas especializadas tanto para ventas al detal como para compras mayoristas.</p>
-              </div>
+      <section
+        aria-labelledby="features-title"
+        className="bg-[var(--background)] py-24 sm:py-32"
+      >
+        <div className="container-marketplace">
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+              <Sparkles aria-hidden="true" className="size-4" />
+              Una nueva forma de hacer negocios
             </div>
+
+            <h2
+              id="features-title"
+              className="text-balance text-3xl font-black tracking-tight text-[var(--foreground)] sm:text-4xl"
+            >
+              Todo lo necesario para construir tu próximo negocio
+            </h2>
+
+            <p className="mt-5 text-pretty text-lg leading-8 text-[var(--muted)]">
+              Credi Marketplace integra herramientas para descubrir productos,
+              comercializar, conectar con proveedores y desarrollar nuevas
+              oportunidades.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-16 grid max-w-6xl gap-6 md:grid-cols-3">
+            {features.map((feature) => (
+              <article
+                key={feature.title}
+                className="marketplace-card group p-7 transition-transform duration-200 hover:-translate-y-1"
+              >
+                <div
+                  className={`mb-6 flex size-14 items-center justify-center rounded-2xl ring-1 ${feature.iconBackgroundClassName} ${feature.iconClassName}`}
+                >
+                  {feature.icon}
+                </div>
+
+                <h3 className="text-xl font-bold text-[var(--foreground)]">
+                  {feature.title}
+                </h3>
+
+                <p className="mt-3 leading-7 text-[var(--muted)]">
+                  {feature.description}
+                </p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* =========================================================
-          CTA (Call to Action)
-      ========================================================== */}
-      <section className="px-4 py-16 lg:px-8">
-        <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl bg-gradient-to-tr from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
-          <div className="px-6 py-20 text-center sm:px-12 sm:py-24">
-            <h2 className="text-3xl font-black tracking-tight sm:text-5xl">
-              ¿Listo para dar el siguiente salto?
+      {/* ======================================================
+          CTA
+      ======================================================= */}
+
+      <section
+        aria-labelledby="cta-title"
+        className="px-4 pb-24 sm:px-6 sm:pb-32"
+      >
+        <div className="container-marketplace overflow-hidden rounded-3xl bg-neutral-950 text-white shadow-marketplace-xl">
+          <div className="relative isolate overflow-hidden px-6 py-20 text-center sm:px-12 sm:py-24">
+            {/* Glow */}
+
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-40 -top-40 -z-10 size-[30rem] rounded-full bg-brand-600/20 blur-[120px]"
+            />
+
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-40 -left-40 -z-10 size-[30rem] rounded-full bg-cyan-500/10 blur-[120px]"
+            />
+
+            <h2
+              id="cta-title"
+              className="text-balance text-3xl font-black tracking-tight sm:text-5xl"
+            >
+              ¿Listo para dar el siguiente paso?
             </h2>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-300 sm:text-xl">
-              Únete a miles de emprendedores y empresas que ya están multiplicando sus ingresos en Credi Marketplace.
+
+            <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-8 text-neutral-300 sm:text-xl">
+              Crea tu cuenta y comienza a explorar nuevas oportunidades
+              comerciales dentro del ecosistema Credi Marketplace.
             </p>
-            <div className="mt-10 flex flex-wrap justify-center gap-4">
+
+            <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
               <Link
                 href="/registro"
-                className="rounded-xl bg-blue-600 px-8 py-4 font-bold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-blue-500"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-brand-600 px-8 py-3.5 font-bold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-500 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-300"
               >
-                Crear cuenta gratis ahora
+                Crear cuenta gratis
               </Link>
+
               <Link
                 href="/contacto"
-                className="rounded-xl border border-white/20 bg-white/5 px-8 py-4 font-bold text-white backdrop-blur transition-all duration-300 hover:bg-white/10"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-8 py-3.5 font-bold text-white backdrop-blur transition-all duration-200 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
-                Hablar con asesor
+                Hablar con un asesor
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* =========================================================
+      {/* ======================================================
           FOOTER
-      ========================================================== */}
-      <footer className="border-t border-slate-200 bg-white text-slate-600">
-        <div className="mx-auto max-w-7xl px-4 py-16 lg:px-8">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
-            <div className="col-span-2 lg:pr-8">
+          
+          NOTA:
+          El footer global debe estar en layout.tsx.
+          Se mantiene aquí solamente si todavía no existe
+          un Footer global independiente.
+      ======================================================= */}
+
+      <footer className="border-t border-[var(--border)] bg-[var(--surface)]">
+        <div className="container-marketplace py-16">
+          <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-5">
+            {/* Marca */}
+
+            <div className="sm:col-span-2 lg:col-span-2 lg:pr-12">
               <Link
                 href="/"
-                className="text-2xl font-black tracking-tight text-slate-950"
-                aria-label="Credi Marketplace - Inicio"
+                aria-label="Credi Marketplace — Inicio"
+                className="inline-flex text-2xl font-black tracking-tight text-[var(--foreground)]"
               >
-                Credi<span className="text-blue-600">Marketplace</span>
+                Credi
+                <span className="text-brand-600">Marketplace</span>
               </Link>
-              <p className="mt-4 text-sm leading-6 text-slate-500">
-                La plataforma líder para conectar compradores, vendedores, profesionales y empresas en una economía digital sin fronteras.
+
+              <p className="mt-4 max-w-md text-sm leading-6 text-[var(--muted)]">
+                Un ecosistema digital para conectar compradores, vendedores,
+                profesionales, proveedores y empresas.
               </p>
             </div>
 
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-950">Navegación</h3>
-              <ul className="mt-4 space-y-3 text-sm">
-                <li><Link href="/explorar" className="transition hover:text-blue-600">Explorar</Link></li>
-                <li><Link href="/ofertas" className="transition hover:text-blue-600">Ofertas</Link></li>
-                <li><Link href="/productos" className="transition hover:text-blue-600">Productos</Link></li>
-                <li><Link href="/servicios" className="transition hover:text-blue-600">Servicios</Link></li>
-              </ul>
-            </div>
+            {/* Navegación */}
 
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-950">Comercio</h3>
-              <ul className="mt-4 space-y-3 text-sm">
-                <li><Link href="/vender" className="transition hover:text-blue-600">Vender en Credi</Link></li>
-                <li><Link href="/categorias" className="transition hover:text-blue-600">Categorías</Link></li>
-                <li><Link href="/b2b" className="transition hover:text-blue-600">Portal B2B</Link></li>
-              </ul>
-            </div>
+            {navigationColumns.map((column) => (
+              <nav
+                key={column.title}
+                aria-label={column.title}
+              >
+                <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--foreground)]">
+                  {column.title}
+                </h2>
 
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-950">Cuenta</h3>
-              <ul className="mt-4 space-y-3 text-sm">
-                <li><Link href="/login" className="transition hover:text-blue-600">Ingresar</Link></li>
-                <li><Link href="/registro" className="transition hover:text-blue-600">Crear cuenta</Link></li>
-                <li><Link href="/soporte" className="transition hover:text-blue-600">Centro de ayuda</Link></li>
-              </ul>
-            </div>
+                <ul className="mt-4 space-y-3">
+                  {column.links.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        className="text-sm text-[var(--muted)] transition-colors hover:text-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
           </div>
 
-          <div className="mt-16 flex flex-col items-center justify-between border-t border-slate-100 pt-8 sm:flex-row">
-            <p className="text-sm text-slate-500">
-              &copy; {new Date().getFullYear()} Credi Marketplace. Todos los derechos reservados.
+          {/* Copyright */}
+
+          <div className="mt-16 flex flex-col gap-4 border-t border-[var(--border)] pt-8 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-[var(--muted)]">
+              © {new Date().getFullYear()} Credi Marketplace. Todos los
+              derechos reservados.
             </p>
-            <div className="mt-4 flex gap-6 text-sm font-medium text-slate-500 sm:mt-0">
-              <Link href="/privacidad" className="transition hover:text-slate-900">Privacidad</Link>
-              <Link href="/terminos" className="transition hover:text-slate-900">Términos</Link>
-            </div>
+
+            <nav
+              aria-label="Legal"
+              className="flex gap-6"
+            >
+              <Link
+                href="/privacidad"
+                className="text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+              >
+                Privacidad
+              </Link>
+
+              <Link
+                href="/terminos"
+                className="text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+              >
+                Términos
+              </Link>
+            </nav>
           </div>
         </div>
       </footer>
-    </main>
+    </>
+  );
+}
+
+// ==========================================================
+// HERO METRIC
+// ==========================================================
+
+interface HeroMetricProps {
+  readonly icon: ReactNode;
+  readonly label: string;
+  readonly value: string;
+}
+
+function HeroMetric({
+  icon,
+  label,
+  value,
+}: HeroMetricProps) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-center backdrop-blur-md">
+      <div className="mx-auto flex size-9 items-center justify-center rounded-lg bg-white/10 text-brand-300">
+        {icon}
+      </div>
+
+      <p className="mt-3 text-xs font-medium uppercase tracking-wider text-neutral-400">
+        {label}
+      </p>
+
+      <p className="mt-1 text-lg font-bold text-white">
+        {value}
+      </p>
+    </div>
   );
 }
