@@ -4,20 +4,19 @@
 // ARCHIVO: src/context/LanguageContext.tsx
 // Credi Marketplace
 //
-// Contexto global de idioma.
+// Contexto global de internacionalización.
 //
 // RESPONSABILIDADES:
-// - Mantener el idioma seleccionado por el usuario.
+// - Mantener el idioma seleccionado.
 // - Exponer la función de traducción.
-// - Proporcionar el idioma actual a los Client Components.
+// - Garantizar que solamente se utilicen locales soportados.
+// - Servir como API de acceso a i18n para Client Components.
 //
-// FUENTE ÚNICA DE IDIOMAS:
+// FUENTE ÚNICA DE LOCALES:
 // - src/i18n/config.ts
 //
-// IMPORTANTE:
-// - Este contexto NO debe definir nuevamente los idiomas.
-// - La persistencia del idioma podrá incorporarse posteriormente
-//   mediante cookie, URL o preferencias del usuario.
+// NOTA:
+// Este contexto no redefine los locales.
 // ==========================================================
 
 import {
@@ -35,19 +34,14 @@ import {
 } from '@/i18n/config';
 
 // ==========================================================
-// 1. TIPOS DE TRADUCCIÓN
+// 1. TIPOS
 // ==========================================================
 
 /**
- * Claves disponibles en el catálogo de traducciones.
+ * Claves disponibles actualmente en el sistema de traducción.
  *
- * Mantener las claves tipadas evita errores como:
- *
- * t('catalogTtile')
- *
- * en lugar de:
- *
- * t('catalogTitle')
+ * Si se agrega una nueva clave aquí, debe existir en todos
+ * los diccionarios de traducción.
  */
 export type TranslationKey =
   | 'subtitle'
@@ -65,7 +59,7 @@ export type TranslationKey =
   | 'officialLink';
 
 /**
- * Catálogo completo de traducciones.
+ * Diccionario de traducción para un idioma.
  */
 export type TranslationDictionary = Record<
   TranslationKey,
@@ -76,19 +70,10 @@ export type TranslationDictionary = Record<
  * Contrato público del contexto.
  */
 export interface LanguageContextType {
-  /**
-   * Idioma actualmente seleccionado.
-   */
   readonly lang: Locale;
 
-  /**
-   * Cambia el idioma activo.
-   */
   readonly setLang: (lang: Locale) => void;
 
-  /**
-   * Traduce una clave.
-   */
   readonly t: (key: TranslationKey) => string;
 }
 
@@ -96,17 +81,14 @@ export interface LanguageContextType {
 // 2. TRADUCCIONES
 // ==========================================================
 
-/**
- * Diccionario de traducciones de Credi Marketplace.
- *
- * IMPORTANTE:
- * Todas las traducciones deben contener exactamente las mismas
- * claves para evitar inconsistencias entre idiomas.
- */
 export const translations: Record<
   Locale,
   TranslationDictionary
 > = {
+  // --------------------------------------------------------
+  // ESPAÑOL
+  // --------------------------------------------------------
+
   es: {
     subtitle: 'Cobertura Mundial',
 
@@ -147,8 +129,13 @@ export const translations: Record<
       'Enlace Oficial',
   },
 
+  // --------------------------------------------------------
+  // INGLÉS
+  // --------------------------------------------------------
+
   en: {
-    subtitle: 'Worldwide Coverage',
+    subtitle:
+      'Worldwide Coverage',
 
     subText:
       'Global shipping and verified official links',
@@ -186,6 +173,10 @@ export const translations: Record<
     officialLink:
       'Official Link',
   },
+
+  // --------------------------------------------------------
+  // PORTUGUÉS
+  // --------------------------------------------------------
 
   pt: {
     subtitle:
@@ -227,6 +218,10 @@ export const translations: Record<
     officialLink:
       'Link Oficial',
   },
+
+  // --------------------------------------------------------
+  // FRANCÉS
+  // --------------------------------------------------------
 
   fr: {
     subtitle:
@@ -275,7 +270,7 @@ export const translations: Record<
 // ==========================================================
 
 const LanguageContext =
-  createContext<LanguageContextType | null>(null);
+  createContext<LanguageContextType | undefined>(undefined);
 
 // ==========================================================
 // 4. PROVIDER
@@ -286,7 +281,7 @@ export interface LanguageProviderProps {
 }
 
 /**
- * Proveedor global del idioma.
+ * Proveedor global de idioma.
  */
 export function LanguageProvider({
   children,
@@ -297,12 +292,18 @@ export function LanguageProvider({
   /**
    * Cambia el idioma activo.
    */
-  const setLang = useCallback((nextLocale: Locale) => {
-    setLangState(nextLocale);
-  }, []);
+  const setLang = useCallback(
+    (nextLocale: Locale) => {
+      setLangState(nextLocale);
+    },
+    [],
+  );
 
   /**
-   * Traduce una clave utilizando el idioma activo.
+   * Traduce una clave.
+   *
+   * Al estar TranslationKey tipado, TypeScript impedirá
+   * utilizar claves inexistentes.
    */
   const t = useCallback(
     (key: TranslationKey): string => {
@@ -312,7 +313,8 @@ export function LanguageProvider({
   );
 
   /**
-   * Valor estable del contexto.
+   * Evita recreaciones innecesarias del objeto
+   * proporcionado por el contexto.
    */
   const contextValue = useMemo<LanguageContextType>(
     () => ({
@@ -335,12 +337,12 @@ export function LanguageProvider({
 // ==========================================================
 
 /**
- * Hook para acceder al contexto de idioma.
+ * Hook global para acceder al sistema de idioma.
  */
 export function useLanguage(): LanguageContextType {
   const context = useContext(LanguageContext);
 
-  if (context === null) {
+  if (context === undefined) {
     throw new Error(
       'useLanguage debe utilizarse dentro de un LanguageProvider.',
     );
