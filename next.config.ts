@@ -1,126 +1,134 @@
-import type { NextConfig } from 'next'
+# ============================================================================
 
-const securityHeaders = [
-  {
-    key: 'X-DNS-Prefetch-Control',
-    value: 'on',
-  },
-  {
-    key: 'Strict-Transport-Security',
-    value: 'max-age=63072000; includeSubDomains; preload',
-  },
-  {
-    key: 'X-Content-Type-Options',
-    value: 'nosniff',
-  },
-  {
-    key: 'X-Frame-Options',
-    value: 'SAMEORIGIN',
-  },
-  {
-    key: 'Referrer-Policy',
-    value: 'strict-origin-when-cross-origin',
-  },
-  {
-    key: 'Permissions-Policy',
-    value:
-      'accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), usb=(), xr-spatial-tracking=()',
-  },
-]
+# CREDI MARKETPLACE — EDGE / CDN HEADERS
 
-const nextConfig: NextConfig = {
-  /**
-   * =======================================================
-   * REACT 19 / REACT COMPILER
-   * =======================================================
-   *
-   * Stable in Next.js 16.
-   *
-   * Automatically optimizes React components and reduces
-   * the need for manual useMemo/useCallback optimization.
-   */
-  reactCompiler: true,
+# Next.js 16.3 · React 19.2 · Node.js 24
 
-  /**
-   * =======================================================
-   * REACT
-   * =======================================================
-   */
-  reactStrictMode: true,
+# ============================================================================
 
-  /**
-   * =======================================================
-   * SECURITY
-   * =======================================================
-   */
-  poweredByHeader: false,
+#
 
-  /**
-   * =======================================================
-   * IMAGES
-   * =======================================================
-   */
-  images: {
-    formats: ['image/avif', 'image/webp'],
-    minimumCacheTTL: 60 * 60 * 24 * 30,
-    dangerouslyAllowSVG: false,
-  },
+# NOTA:
 
-  /**
-   * =======================================================
-   * TYPESCRIPT
-   * =======================================================
-   *
-   * Never bypass TypeScript errors during production builds.
-   */
-  typescript: {
-    ignoreBuildErrors: false,
-  },
+# Este archivo solo tendrá efecto si la plataforma/CDN de despliegue
 
-  /**
-   * =======================================================
-   * ESLINT
-   * =======================================================
-   *
-   * Linting is handled by the project's ESLint setup/CI.
-   * Next.js 16 no longer relies on `next lint`.
-   */
+# reconoce el formato "_headers".
 
-  /**
-   * =======================================================
-   * PERFORMANCE / BUNDLE OPTIMIZATION
-   * =======================================================
-   */
-  experimental: {
-    optimizePackageImports: [
-      'lucide-react',
-      'date-fns',
-      'zod',
-    ],
-  },
+#
 
-  /**
-   * =======================================================
-   * TYPED ROUTES
-   * =======================================================
-   *
-   * Gives compile-time checking for internal Next.js links.
-   */
-  typedRoutes: true,
+# La configuración principal de seguridad debe mantenerse también en
 
-  /**
-   * =======================================================
-   * SECURITY HEADERS
-   * =======================================================
-   */
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: securityHeaders,
-      },
-    ]
-  },
-}
+# next.config.ts para garantizar su aplicación dentro de Next.js.
 
-export default nextConfig
+# ============================================================================
+
+# ============================================================================
+
+# NEXT.JS STATIC ASSETS
+
+# ============================================================================
+
+#
+
+# Los archivos generados por Next.js contienen hashes/versionado.
+
+# Por ello pueden almacenarse durante un año de manera inmutable.
+
+#
+
+/_next/static/*
+Cache-Control: public, max-age=31536000, immutable
+
+# ============================================================================
+
+# STATIC FONTS
+
+# ============================================================================
+
+/*.woff2
+Cache-Control: public, max-age=31536000, immutable
+
+/*.woff
+Cache-Control: public, max-age=31536000, immutable
+
+/*.ttf
+Cache-Control: public, max-age=31536000, immutable
+
+# ============================================================================
+
+# PUBLIC IMAGES
+
+# ============================================================================
+
+#
+
+# Las imágenes públicas pueden cachearse, pero no se consideran
+
+# necesariamente inmutables porque podrían reemplazarse.
+
+#
+
+/images/*
+Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+# ============================================================================
+
+# FAVICON
+
+# ============================================================================
+
+/favicon.ico
+Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+# ============================================================================
+
+# SECURITY HEADERS
+
+# ============================================================================
+
+/*
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=()
+Cross-Origin-Opener-Policy: same-origin-allow-popups
+Cross-Origin-Resource-Policy: same-origin
+X-DNS-Prefetch-Control: on
+
+# ============================================================================
+
+# HSTS
+
+# ============================================================================
+
+#
+
+# SOLO debe utilizarse cuando el dominio completo funciona correctamente
+
+# mediante HTTPS.
+
+#
+
+# Si existen subdominios que todavía necesitan HTTP, elimina temporalmente
+
+# "includeSubDomains".
+
+#
+
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+# ============================================================================
+
+# API / DYNAMIC RESPONSES
+
+# ============================================================================
+
+#
+
+# Las rutas API no deben quedar almacenadas por CDN de manera accidental.
+
+#
+
+/api/*
+Cache-Control: private, no-store, max-age=0
+X-Content-Type-Options: nosniff
