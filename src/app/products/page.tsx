@@ -1,127 +1,705 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { supabase } from "@/lib/supabase";
-import AffiliateCopyButton from "@/components/AffiliateCopyButton";
+```tsx
+import type { Metadata } from 'next';
+import Link from 'next/link';
+
+import { Package, ShoppingBag, Store } from 'lucide-react';
+
+import { supabase } from '@/lib/supabase/client';
+import AffiliateCopyButton from '@/components/AffiliateCopyButton';
+
+// ==========================================================
+// ARCHIVO: src/app/products/page.tsx
+// Credi Marketplace
+//
+// Catálogo público de productos.
+//
+// RESPONSABILIDADES:
+// - Obtener productos activos.
+// - Mostrar catálogo responsive.
+// - Presentar precio y disponibilidad.
+// - Permitir acceder al detalle.
+// - Generar enlace de afiliado.
+// - Mantener una experiencia premium.
+//
+// ARQUITECTURA:
+// - Server Component.
+// - Supabase mediante cliente público.
+// - Sin SERVICE_ROLE_KEY.
+// - La seguridad real depende de RLS.
+// ==========================================================
 
 export const metadata: Metadata = {
-  title: "Catálogo de Productos",
-  description: "Explora nuestro catálogo de productos disponibles para afiliarte y comercializar.",
+  title: 'Productos | Credi Marketplace',
+  description:
+    'Explora productos disponibles en Credi Marketplace, descubre oportunidades comerciales y comparte productos mediante enlaces de afiliado.',
 };
 
-// Optimización con ISR (Incremental Static Regeneration)
 export const revalidate = 60;
+
+// ==========================================================
+// TIPOS
+// ==========================================================
 
 interface Product {
   id: string;
   title: string;
-  description?: string;
+  description: string | null;
   price: number;
   stock: number;
   store_id: string;
 }
 
+// ==========================================================
+// OBTENER PRODUCTOS
+// ==========================================================
+
 async function getProducts(): Promise<Product[]> {
   try {
     const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("is_active", true);
+      .from('products')
+      .select(
+        `
+          id,
+          title,
+          description,
+          price,
+          stock,
+          store_id
+        `
+      )
+      .eq('is_active', true)
+      .order('created_at', {
+        ascending: false,
+      });
 
     if (error) {
-      console.error("Error consultando productos en Supabase:", error);
+      console.error(
+        '[ProductsPage] Error obteniendo productos:',
+        error
+      );
+
       return [];
     }
 
-    return data || [];
+    return (data ?? []) as Product[];
   } catch (error) {
-    console.error("Error al cargar productos:", error);
+    console.error(
+      '[ProductsPage] Error inesperado:',
+      error
+    );
+
     return [];
   }
 }
+
+// ==========================================================
+// FORMATEAR PRECIO
+// ==========================================================
+
+function formatPrice(price: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(price);
+}
+
+// ==========================================================
+// PÁGINA
+// ==========================================================
 
 export default async function ProductsPage() {
   const products = await getProducts();
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Cabecera del Catálogo */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-              Catálogo de Productos
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Selecciona productos para promocionar y obtener comisiones como afiliado.
+    <main
+      className="
+        min-h-screen
+        bg-[var(--background)]
+        text-[var(--foreground)]
+      "
+    >
+      {/* ==================================================
+          CABECERA
+      ================================================== */}
+
+      <section
+        className="
+          border-b
+          border-[var(--border)]
+          bg-[var(--surface)]
+        "
+      >
+        <div
+          className="
+            container-marketplace
+            py-10
+            sm:py-12
+            lg:py-14
+          "
+        >
+          <div
+            className="
+              flex
+              flex-col
+              gap-6
+              lg:flex-row
+              lg:items-end
+              lg:justify-between
+            "
+          >
+            {/* INTRODUCCIÓN */}
+
+            <div className="max-w-3xl">
+              <div
+                className="
+                  mb-4
+                  inline-flex
+                  items-center
+                  gap-2
+                  rounded-full
+                  border
+                  border-[var(--primary)]/15
+                  bg-[var(--primary)]/8
+                  px-3
+                  py-1.5
+                  text-xs
+                  font-bold
+                  uppercase
+                  tracking-[0.14em]
+                  text-[var(--primary)]
+                "
+              >
+                <Package
+                  aria-hidden="true"
+                  className="size-3.5"
+                />
+
+                Marketplace
+              </div>
+
+              <h1
+                className="
+                  text-3xl
+                  font-black
+                  tracking-tight
+                  sm:text-4xl
+                  lg:text-5xl
+                "
+              >
+                Catálogo de{' '}
+                <span
+                  className="
+                    bg-linear-to-r
+                    from-brand-600
+                    to-cyan-500
+                    bg-clip-text
+                    text-transparent
+                  "
+                >
+                  productos
+                </span>
+              </h1>
+
+              <p
+                className="
+                  mt-4
+                  max-w-2xl
+                  text-sm
+                  leading-6
+                  text-[var(--muted)]
+                  sm:text-base
+                  sm:leading-7
+                "
+              >
+                Descubre productos disponibles,
+                encuentra oportunidades comerciales
+                y comparte artículos mediante el
+                programa de afiliados.
+              </p>
+            </div>
+
+            {/* ACCIÓN AFILIADOS */}
+
+            <Link
+              href="/dashboard/affiliate"
+              className="
+                inline-flex
+                min-h-11
+                shrink-0
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                bg-emerald-600
+                px-5
+                py-3
+                text-sm
+                font-bold
+                text-white
+                shadow-lg
+                shadow-emerald-900/10
+                transition-all
+                duration-200
+                hover:-translate-y-0.5
+                hover:bg-emerald-700
+                hover:shadow-xl
+                focus-visible:outline-none
+                focus-visible:ring-4
+                focus-visible:ring-emerald-500/20
+              "
+            >
+              <ShoppingBag
+                aria-hidden="true"
+                className="size-4"
+              />
+
+              Panel de Afiliado
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================================================
+          CATÁLOGO
+      ================================================== */}
+
+      <section
+        className="
+          container-marketplace
+          py-8
+          sm:py-10
+          lg:py-12
+        "
+        aria-label="Catálogo de productos"
+      >
+        {/* CONTADOR */}
+
+        {products.length > 0 && (
+          <div
+            className="
+              mb-6
+              flex
+              items-center
+              justify-between
+              gap-4
+            "
+          >
+            <p
+              className="
+                text-sm
+                font-semibold
+                text-[var(--muted)]
+              "
+            >
+              {products.length}{' '}
+              {products.length === 1
+                ? 'producto disponible'
+                : 'productos disponibles'}
             </p>
           </div>
-          <Link
-            href="/dashboard/affiliate"
-            className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
-          >
-            Ver Panel de Afiliado
-          </Link>
-        </div>
+        )}
 
-        {/* Estado Vacío */}
+        {/* =================================================
+            ESTADO VACÍO
+        ================================================= */}
+
         {products.length === 0 ? (
-          <div className="bg-card text-card-foreground rounded-2xl p-12 text-center border border-border shadow-sm">
-            <p className="text-muted-foreground text-base">
-              No hay productos activos disponibles en este momento.
+          <div
+            className="
+              flex
+              min-h-80
+              flex-col
+              items-center
+              justify-center
+              rounded-3xl
+              border
+              border-dashed
+              border-[var(--border)]
+              bg-[var(--surface)]
+              px-6
+              py-12
+              text-center
+            "
+          >
+            <div
+              className="
+                flex
+                size-16
+                items-center
+                justify-center
+                rounded-2xl
+                bg-[var(--primary)]/10
+                text-[var(--primary)]
+              "
+            >
+              <Package
+                aria-hidden="true"
+                className="size-7"
+              />
+            </div>
+
+            <h2
+              className="
+                mt-5
+                text-xl
+                font-black
+              "
+            >
+              No hay productos disponibles
+            </h2>
+
+            <p
+              className="
+                mt-2
+                max-w-md
+                text-sm
+                leading-6
+                text-[var(--muted)]
+              "
+            >
+              En este momento no existen productos
+              activos publicados en el marketplace.
+              Vuelve a consultar próximamente.
             </p>
+
+            <Link
+              href="/"
+              className="
+                mt-6
+                inline-flex
+                items-center
+                rounded-xl
+                border
+                border-[var(--border)]
+                bg-[var(--surface)]
+                px-4
+                py-2.5
+                text-sm
+                font-bold
+                transition-colors
+                hover:bg-[var(--surface-secondary)]
+              "
+            >
+              Volver al inicio
+            </Link>
           </div>
         ) : (
-          /* Rejilla de Productos */
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          /* =================================================
+             GRID
+          ================================================= */
+
+          <div
+            className="
+              grid
+              grid-cols-1
+              gap-5
+              sm:grid-cols-2
+              lg:grid-cols-3
+              xl:grid-cols-4
+            "
+          >
             {products.map((product) => {
-              // Generamos la ruta base que el componente de cliente completará con el dominio real
-              const affiliatePath = `/products/detail?id=${product.id}&ref=afiliado`;
+              const affiliatePath =
+                `/products/detail?id=${encodeURIComponent(
+                  product.id
+                )}&ref=afiliado`;
+
+              const stock =
+                Number.isFinite(product.stock)
+                  ? Math.max(0, product.stock)
+                  : 0;
+
+              const price =
+                Number.isFinite(product.price)
+                  ? product.price
+                  : 0;
+
+              const isAvailable = stock > 0;
 
               return (
-                <div
+                <article
                   key={product.id}
-                  className="rounded-2xl bg-card text-card-foreground p-5 border border-border shadow-sm flex flex-col justify-between hover:shadow-md transition-all"
+                  className="
+                    group
+                    flex
+                    min-w-0
+                    flex-col
+                    overflow-hidden
+                    rounded-3xl
+                    border
+                    border-[var(--border)]
+                    bg-[var(--surface)]
+                    shadow-sm
+                    transition-all
+                    duration-300
+                    hover:-translate-y-1
+                    hover:shadow-[0_20px_50px_rgba(0,0,0,0.10)]
+                  "
                 >
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground line-clamp-1">
-                      {product.title}
-                    </h3>
-                    <p className="mt-2 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                      {product.description || "Sin descripción disponible"}
-                    </p>
+                  {/* ========================================
+                      ÁREA VISUAL
+                  ======================================== */}
+
+                  <div
+                    className="
+                      relative
+                      flex
+                      h-44
+                      items-center
+                      justify-center
+                      overflow-hidden
+                      bg-[var(--surface-secondary)]
+                    "
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="
+                        absolute
+                        inset-0
+                        bg-linear-to-br
+                        from-[var(--primary)]/8
+                        via-transparent
+                        to-cyan-500/8
+                      "
+                    />
+
+                    <div
+                      className="
+                        relative
+                        flex
+                        size-16
+                        items-center
+                        justify-center
+                        rounded-2xl
+                        border
+                        border-[var(--border)]
+                        bg-[var(--surface)]
+                        text-[var(--primary)]
+                        shadow-sm
+                        transition-transform
+                        duration-300
+                        group-hover:scale-105
+                      "
+                    >
+                      <Package
+                        aria-hidden="true"
+                        className="size-7"
+                      />
+                    </div>
+
+                    {/* ESTADO */}
+
+                    <span
+                      className={`
+                        absolute
+                        right-3
+                        top-3
+                        rounded-full
+                        px-2.5
+                        py-1
+                        text-[10px]
+                        font-black
+                        uppercase
+                        tracking-wider
+                        ${
+                          isAvailable
+                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-red-500/10 text-red-700 dark:text-red-300'
+                        }
+                      `}
+                    >
+                      {isAvailable
+                        ? 'Disponible'
+                        : 'Agotado'}
+                    </span>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-border space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-extrabold text-primary">
-                        ${typeof product.price === "number" ? product.price.toFixed(2) : "0.00"}
-                      </span>
-                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                        Stock: {product.stock ?? 0}
-                      </span>
+                  {/* ========================================
+                      CONTENIDO
+                  ======================================== */}
+
+                  <div
+                    className="
+                      flex
+                      flex-1
+                      flex-col
+                      p-5
+                    "
+                  >
+                    <div className="flex-1">
+                      <h2
+                        className="
+                          line-clamp-2
+                          text-lg
+                          font-black
+                          leading-6
+                          text-[var(--foreground)]
+                        "
+                        title={product.title}
+                      >
+                        {product.title}
+                      </h2>
+
+                      <p
+                        className="
+                          mt-2
+                          line-clamp-3
+                          min-h-[4.5rem]
+                          text-sm
+                          leading-6
+                          text-[var(--muted)]
+                        "
+                      >
+                        {product.description?.trim() ||
+                          'Este producto no dispone de una descripción.'}
+                      </p>
                     </div>
 
-                    {/* Componente interactivo para copiar el enlace dinámico de afiliado */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                        Tu enlace de afiliado:
-                      </span>
-                      <AffiliateCopyButton affiliatePath={affiliatePath} />
+                    {/* ======================================
+                        PRECIO / STOCK
+                    ====================================== */}
+
+                    <div
+                      className="
+                        mt-5
+                        flex
+                        items-end
+                        justify-between
+                        gap-3
+                        border-t
+                        border-[var(--border)]
+                        pt-4
+                      "
+                    >
+                      <div>
+                        <p
+                          className="
+                            text-[10px]
+                            font-bold
+                            uppercase
+                            tracking-wider
+                            text-[var(--muted)]
+                          "
+                        >
+                          Precio
+                        </p>
+
+                        <p
+                          className="
+                            mt-1
+                            text-2xl
+                            font-black
+                            tracking-tight
+                            text-[var(--primary)]
+                          "
+                        >
+                          {formatPrice(price)}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p
+                          className="
+                            text-[10px]
+                            font-bold
+                            uppercase
+                            tracking-wider
+                            text-[var(--muted)]
+                          "
+                        >
+                          Stock
+                        </p>
+
+                        <p
+                          className="
+                            mt-1
+                            text-sm
+                            font-bold
+                            text-[var(--foreground)]
+                          "
+                        >
+                          {stock}
+                        </p>
+                      </div>
                     </div>
+
+                    {/* ======================================
+                        AFILIACIÓN
+                    ====================================== */}
+
+                    <div className="mt-5">
+                      <div className="mb-2 flex items-center gap-2">
+                        <Store
+                          aria-hidden="true"
+                          className="
+                            size-3.5
+                            text-emerald-600
+                          "
+                        />
+
+                        <span
+                          className="
+                            text-[10px]
+                            font-black
+                            uppercase
+                            tracking-[0.12em]
+                            text-[var(--muted)]
+                          "
+                        >
+                          Enlace de afiliado
+                        </span>
+                      </div>
+
+                      <AffiliateCopyButton
+                        affiliatePath={affiliatePath}
+                      />
+                    </div>
+
+                    {/* ======================================
+                        DETALLE
+                    ====================================== */}
 
                     <Link
                       href={affiliatePath}
-                      className="block w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-center text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
+                      aria-label={`Ver detalle de ${product.title}`}
+                      className="
+                        mt-3
+                        inline-flex
+                        min-h-11
+                        w-full
+                        items-center
+                        justify-center
+                        rounded-xl
+                        bg-[var(--primary)]
+                        px-4
+                        py-2.5
+                        text-sm
+                        font-black
+                        text-white
+                        shadow-md
+                        shadow-blue-900/10
+                        transition-all
+                        duration-200
+                        hover:-translate-y-0.5
+                        hover:bg-[var(--primary-hover)]
+                        hover:shadow-lg
+                        focus-visible:outline-none
+                        focus-visible:ring-4
+                        focus-visible:ring-[var(--primary)]/20
+                      "
                     >
-                      Ver Detalle
+                      Ver producto
                     </Link>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
+```
