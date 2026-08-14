@@ -1,3 +1,4 @@
+```tsx
 'use client';
 
 // ==========================================================
@@ -6,21 +7,19 @@
 //
 // Contexto global de autenticación.
 //
-// Responsabilidades:
+// RESPONSABILIDADES:
 // - Mantener el usuario autenticado.
 // - Obtener el perfil público desde public.profiles.
-// - Escuchar cambios de sesión de Supabase Auth.
+// - Normalizar roles de Supabase al dominio de la aplicación.
 // - Exponer el estado de carga.
-// - Cerrar la sesión.
-// - Mantener una única representación tipada del usuario.
+// - Cerrar sesión.
+// - Proporcionar helpers de autorización para la UI.
 //
-// IMPORTANTE:
+// SEGURIDAD:
 // - Este contexto NO sustituye RLS.
-// - Este contexto NO determina permisos de seguridad.
-// - Los permisos reales deben validarse en Supabase/RLS
-//   y, cuando corresponda, en el servidor.
-// - Nunca utilizar SERVICE_ROLE_KEY en este archivo.
-//
+// - Este contexto NO constituye autorización de seguridad.
+// - Las operaciones sensibles deben validarse en servidor/RLS.
+// - Nunca utilizar SERVICE_ROLE_KEY aquí.
 // ==========================================================
 
 import {
@@ -48,11 +47,19 @@ import type {
 
 export interface AuthProfile extends UserProfile {
   /**
-   * Perfil obtenido desde public.profiles.
+   * Modelo de perfil normalizado para toda la aplicación.
    *
-   * UserProfile representa el modelo de dominio común.
-   * AuthProfile puede ampliarse posteriormente sin duplicar
-   * el modelo principal.
+   * El resto de la aplicación debe utilizar:
+   *
+   * profile.nombre
+   * profile.rol
+   *
+   * y NO acceder directamente a:
+   *
+   * full_name
+   * role
+   *
+   * de Supabase.
    */
 }
 
@@ -63,28 +70,27 @@ export interface AuthContextType {
   user: User | null;
 
   /**
-   * Perfil público asociado al usuario.
+   * Perfil normalizado.
    */
   profile: AuthProfile | null;
 
   /**
-   * Indica si el estado inicial de autenticación
-   * todavía está siendo determinado.
+   * Estado de carga inicial.
    */
   loading: boolean;
 
   /**
-   * Cierra la sesión actual.
+   * Cerrar sesión.
    */
   signOut: () => Promise<void>;
 
   /**
-   * Indica si existe una sesión autenticada.
+   * Indica si existe una sesión.
    */
   isAuthenticated: boolean;
 
   /**
-   * Indica si el usuario posee un rol concreto.
+   * Comprueba si el usuario posee un rol.
    */
   hasRole: (role: UserRole) => boolean;
 
@@ -102,6 +108,74 @@ const AuthContext =
   createContext<AuthContextType | undefined>(
     undefined
   );
+
+// ==========================================================
+// NORMALIZACIÓN DE ROLES
+// ==========================================================
+
+/**
+ * Convierte los posibles valores almacenados en
+ * Supabase al modelo canónico utilizado por Credi Marketplace.
+ *
+ * MODELO CANÓNICO:
+ *
+ * admin
+ * vendedor
+ * afiliado
+ * cliente
+ * empresa
+ * profesional
+ */
+function normalizeRole(
+  value: unknown
+): UserRole {
+  if (typeof value !== 'string') {
+    return 'cliente';
+  }
+
+  const role = value
+    .trim()
+    .toLowerCase();
+
+  switch (role) {
+    case 'admin':
+    case 'administrator':
+    case 'administrador':
+      return 'admin';
+
+    case 'vendor':
+    case 'seller':
+    case 'vendedor':
+      return 'vendedor';
+
+    case 'affiliate':
+    case 'afiliado':
+      return 'afiliado';
+
+    case 'company':
+    case 'business':
+    case 'empresa':
+      return 'empresa';
+
+    case 'professional':
+    case 'profesional':
+      return 'profesional';
+
+    case 'customer':
+    case 'client':
+    case 'cliente':
+    case 'user':
+      return 'cliente';
+
+    default:
+      /**
+       * Nunca confiamos ciegamente en un valor externo.
+       * Si aparece un rol desconocido, se utiliza el rol
+       * de menor privilegio para la interfaz.
+       */
+      return 'cliente';
+  }
+}
 
 // ==========================================================
 // PROVIDER
@@ -137,70 +211,87 @@ export function AuthProvider({
         } = await supabase
           .from('profiles')
           .select(
-            'id, email, full_name, role, avatar_url, is_active, created_at, updated_at'
+            `
+              id,
+              email,
+              full_name,
+              role,
+              avatar_url,
+              is_active,
+              created_at,
+              updated_at
+            `
           )
           .eq('id', userId)
           .maybeSingle();
 
         // ----------------------------------------------
-        // Perfil no encontrado
+        // ERROR DE CONSULTA
         // ----------------------------------------------
 
-        if (!data) {
-          if (error) {
-            console.error(
-              '[AuthContext] Error obteniendo perfil:',
-              error
-            );
-          }
+        if (error) {
+          console.error(
+            '[AuthContext] Error obteniendo perfil:',
+            error
+          );
 
           setProfile(null);
           return;
         }
 
         // ----------------------------------------------
-        // Validación defensiva del rol
+        // PERFIL NO ENCONTRADO
         // ----------------------------------------------
 
-        const validRoles: UserRole[] = [
-          'customer',
-          'vendor',
-          'professional',
-          'company',
-          'admin',
-        ];
+        if (!data) {
+          console.warn(
+            '[AuthContext] Perfil no encontrado para:',
+            userId
+          );
 
-        const role = validRoles.includes(
-          data.role as UserRole
-        )
-          ? (data.role as UserRole)
-          : 'customer';
+          setProfile(null);
+          return;
+        }
 
         // ----------------------------------------------
-        // Construcción del perfil
+        // ROL NORMALIZADO
+        // ----------------------------------------------
+
+        const role =
+          normalizeRole(data.role);
+
+        // ----------------------------------------------
+        // PERFIL NORMALIZADO
         // ----------------------------------------------
 
         setProfile({
           id: data.id,
+
           email:
             data.email ??
             fallbackEmail ??
             '',
-          fullName:
-            data.full_name ?? '',
-          role,
+
+          nombre:
+            data.full_name ??
+            '',
+
+          rol: role,
 
           avatarUrl:
-            data.avatar_url ?? null,
+            data.avatar_url ??
+            null,
 
           isActive:
-            data.is_active ?? true,
+            data.is_active ??
+            true,
 
           createdAt:
             data.created_at,
 
           updatedAt:
-            data.updated_at ?? null,
+            data.updated_at ??
+            null,
         });
       } catch (error) {
         console.error(
@@ -215,7 +306,7 @@ export function AuthProvider({
   );
 
   // ========================================================
-  // INICIALIZACIÓN DE AUTENTICACIÓN
+  // INICIALIZACIÓN
   // ========================================================
 
   useEffect(() => {
@@ -247,7 +338,8 @@ export function AuthProvider({
         }
 
         const currentUser =
-          data.session?.user ?? null;
+          data.session?.user ??
+          null;
 
         setUser(currentUser);
 
@@ -279,7 +371,7 @@ export function AuthProvider({
     void initializeAuth();
 
     // ======================================================
-    // LISTENER DE AUTENTICACIÓN
+    // LISTENER SUPABASE AUTH
     // ======================================================
 
     const {
@@ -292,9 +384,14 @@ export function AuthProvider({
           }
 
           const currentUser =
-            session?.user ?? null;
+            session?.user ??
+            null;
 
           setUser(currentUser);
+
+          // --------------------------------------------
+          // SIN SESIÓN
+          // --------------------------------------------
 
           if (!currentUser) {
             setProfile(null);
@@ -302,19 +399,20 @@ export function AuthProvider({
             return;
           }
 
-          /*
-           * Evitamos realizar operaciones innecesarias
-           * dentro del callback de Supabase Auth.
-           *
-           * El perfil se obtiene después del cambio de
-           * estado de autenticación.
-           */
+          // --------------------------------------------
+          // ACTUALIZAR PERFIL
+          // --------------------------------------------
+
           if (
             event === 'SIGNED_IN' ||
             event === 'INITIAL_SESSION' ||
-            event === 'TOKEN_REFRESHED' ||
             event === 'USER_UPDATED'
           ) {
+            /**
+             * Ejecutamos fuera del callback inmediato
+             * de autenticación para evitar encadenamientos
+             * innecesarios dentro del listener.
+             */
             void fetchProfile(
               currentUser.id,
               currentUser.email
@@ -325,8 +423,13 @@ export function AuthProvider({
         }
       );
 
+    // ======================================================
+    // CLEANUP
+    // ======================================================
+
     return () => {
       mounted = false;
+
       authListener.subscription.unsubscribe();
     };
   }, [fetchProfile]);
@@ -337,7 +440,9 @@ export function AuthProvider({
 
   const signOut = useCallback(
     async (): Promise<void> => {
-      const { error } =
+      const {
+        error,
+      } =
         await supabase.auth.signOut();
 
       if (error) {
@@ -356,7 +461,7 @@ export function AuthProvider({
   );
 
   // ========================================================
-  // AUTENTICACIÓN
+  // ESTADO DE AUTENTICACIÓN
   // ========================================================
 
   const isAuthenticated =
@@ -368,17 +473,17 @@ export function AuthProvider({
 
   const hasRole = useCallback(
     (role: UserRole): boolean => {
-      return profile?.role === role;
+      return profile?.rol === role;
     },
-    [profile]
+    [profile?.rol]
   );
 
   // ========================================================
-  // ADMINISTRADOR
+  // ADMIN
   // ========================================================
 
   const isAdmin =
-    profile?.role === 'admin';
+    profile?.rol === 'admin';
 
   // ========================================================
   // VALOR DEL CONTEXTO
@@ -407,7 +512,7 @@ export function AuthProvider({
     );
 
   // ========================================================
-  // RENDER
+  // PROVIDER
   // ========================================================
 
   return (
@@ -435,3 +540,4 @@ export function useAuth(): AuthContextType {
 
   return context;
 }
+```
