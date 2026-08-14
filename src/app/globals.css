@@ -2,7 +2,7 @@
 
 /* ============================================================
    CREDI MARKETPLACE
-   Global Design System
+   GLOBAL DESIGN SYSTEM
    ------------------------------------------------------------
    Next.js 16.3
    React 19
@@ -11,7 +11,7 @@
    ============================================================ */
 
 /* ============================================================
-   1. DESIGN TOKENS
+   1. TAILWIND THEME
    ============================================================ */
 
 @theme {
@@ -20,6 +20,7 @@
      ---------------------------------------------------------- */
 
   --font-sans:
+    var(--font-inter),
     Inter,
     ui-sans-serif,
     system-ui,
@@ -71,7 +72,7 @@
   --color-neutral-950: oklch(0.14 0.018 247);
 
   /* ----------------------------------------------------------
-     Semantic colors
+     Success
      ---------------------------------------------------------- */
 
   --color-success-50: oklch(0.97 0.03 145);
@@ -80,17 +81,29 @@
   --color-success-600: oklch(0.53 0.16 145);
   --color-success-700: oklch(0.44 0.13 145);
 
+  /* ----------------------------------------------------------
+     Warning
+     ---------------------------------------------------------- */
+
   --color-warning-50: oklch(0.98 0.03 85);
   --color-warning-100: oklch(0.94 0.07 85);
   --color-warning-500: oklch(0.75 0.17 85);
   --color-warning-600: oklch(0.62 0.15 70);
   --color-warning-700: oklch(0.50 0.12 65);
 
+  /* ----------------------------------------------------------
+     Danger
+     ---------------------------------------------------------- */
+
   --color-danger-50: oklch(0.97 0.02 25);
   --color-danger-100: oklch(0.93 0.05 25);
   --color-danger-500: oklch(0.62 0.21 25);
   --color-danger-600: oklch(0.54 0.20 25);
   --color-danger-700: oklch(0.45 0.17 25);
+
+  /* ----------------------------------------------------------
+     Info
+     ---------------------------------------------------------- */
 
   --color-info-50: oklch(0.97 0.025 230);
   --color-info-100: oklch(0.93 0.05 230);
@@ -136,7 +149,7 @@
     0 24px 60px rgb(15 23 42 / 0.16);
 
   /* ----------------------------------------------------------
-     Animation
+     Animations
      ---------------------------------------------------------- */
 
   --animate-fade-in:
@@ -237,37 +250,88 @@
 }
 
 /* ============================================================
-   3. ROOT TOKENS
+   3. ROOT DESIGN TOKENS
    ============================================================ */
 
 :root {
   color-scheme: light;
 
+  /* ----------------------------------------------------------
+     Core
+     ---------------------------------------------------------- */
+
   --background: oklch(0.985 0.002 247);
   --foreground: oklch(0.21 0.023 247);
+
+  /* ----------------------------------------------------------
+     Surfaces
+     ---------------------------------------------------------- */
 
   --surface: oklch(1 0 0);
   --surface-secondary: oklch(0.97 0.003 247);
   --surface-tertiary: oklch(0.94 0.005 247);
 
+  /* ----------------------------------------------------------
+     Borders
+     ---------------------------------------------------------- */
+
   --border: oklch(0.91 0.006 247);
   --border-strong: oklch(0.84 0.008 247);
 
+  /* ----------------------------------------------------------
+     Text
+     ---------------------------------------------------------- */
+
   --muted: oklch(0.52 0.015 247);
   --muted-light: oklch(0.65 0.012 247);
+
+  /* ----------------------------------------------------------
+     Brand
+     ---------------------------------------------------------- */
 
   --primary: oklch(0.52 0.20 250);
   --primary-hover: oklch(0.44 0.18 250);
   --primary-active: oklch(0.36 0.14 250);
 
+  /* ----------------------------------------------------------
+     Semantic
+     ---------------------------------------------------------- */
+
   --success: oklch(0.53 0.16 145);
   --warning: oklch(0.62 0.15 70);
   --danger: oklch(0.54 0.20 25);
 
+  /* ----------------------------------------------------------
+     Focus
+     ---------------------------------------------------------- */
+
   --focus-ring: oklch(0.52 0.20 250 / 0.35);
 
+  /* ----------------------------------------------------------
+     Layout
+     ---------------------------------------------------------- */
+
   --content-width: 1440px;
+
+  /* ----------------------------------------------------------
+     Header
+     ---------------------------------------------------------- */
+
+  --header-height: 4rem;
+
+  /* ----------------------------------------------------------
+     Safe areas
+     ---------------------------------------------------------- */
+
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
 }
+
+/* ============================================================
+   4. DARK MODE
+   ============================================================ */
 
 .dark {
   color-scheme: dark;
@@ -276,7 +340,7 @@
   --foreground: oklch(0.96 0.004 247);
 
   --surface: oklch(0.18 0.018 247);
-  --surface-secondary: oklch(0.21 0.02 247);
+  --surface-secondary: oklch(0.21 0.020 247);
   --surface-tertiary: oklch(0.25 0.021 247);
 
   --border: oklch(0.29 0.022 247);
@@ -297,7 +361,7 @@
 }
 
 /* ============================================================
-   4. GLOBAL RESET
+   5. GLOBAL RESET
    ============================================================ */
 
 *,
@@ -308,17 +372,26 @@
 
 html {
   min-height: 100%;
+
   scroll-behavior: smooth;
+
   text-rendering: optimizeLegibility;
+
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
   scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-color:
+    var(--border-strong)
+    transparent;
+
+  background: var(--background);
 }
 
 body {
   min-height: 100vh;
+
   margin: 0;
 
   background: var(--background);
@@ -329,6 +402,8 @@ body {
   line-height: 1.5;
 
   overflow-x: hidden;
+
+  -webkit-tap-highlight-color: transparent;
 }
 
 body,
@@ -407,7 +482,28 @@ ol {
 }
 
 /* ============================================================
-   5. FORM CONTROLS
+   6. MEDIA DEFAULTS
+   ============================================================ */
+
+img {
+  max-width: 100%;
+}
+
+img[width][height] {
+  height: auto;
+}
+
+video {
+  max-width: 100%;
+}
+
+iframe {
+  max-width: 100%;
+  border: 0;
+}
+
+/* ============================================================
+   7. FORM CONTROLS
    ============================================================ */
 
 input,
@@ -433,7 +529,9 @@ select:disabled {
   opacity: 0.6;
 }
 
-/* Browser autofill */
+/* ------------------------------------------------------------
+   Autofill
+   ------------------------------------------------------------ */
 
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
@@ -445,17 +543,25 @@ select:-webkit-autofill,
 select:-webkit-autofill:hover,
 select:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--foreground);
-  box-shadow: 0 0 0 1000px var(--surface) inset;
-  transition: background-color 9999s ease-in-out 0s;
+
+  box-shadow:
+    0 0 0 1000px
+    var(--surface)
+    inset;
+
+  transition:
+    background-color
+    9999s
+    ease-in-out;
 }
 
 /* ============================================================
-   6. ACCESSIBILITY
+   8. ACCESSIBILITY
    ============================================================ */
 
 :focus-visible {
   outline: 3px solid var(--focus-ring);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 :focus:not(:focus-visible) {
@@ -464,13 +570,17 @@ select:-webkit-autofill:focus {
 
 .skip-link {
   position: fixed;
+
   top: 0;
   left: 0;
+
   z-index: 99999;
 
   transform: translateY(-150%);
 
-  padding: 0.75rem 1rem;
+  padding:
+    0.75rem
+    1rem;
 
   border-radius:
     0 0
@@ -482,7 +592,13 @@ select:-webkit-autofill:focus {
 
   font-weight: 700;
 
-  transition: transform 160ms ease;
+  box-shadow:
+    var(--shadow-marketplace-lg);
+
+  transition:
+    transform
+    160ms
+    ease;
 }
 
 .skip-link:focus {
@@ -490,7 +606,7 @@ select:-webkit-autofill:focus {
 }
 
 /* ============================================================
-   7. SELECTION
+   9. SELECTION
    ============================================================ */
 
 ::selection {
@@ -499,7 +615,7 @@ select:-webkit-autofill:focus {
 }
 
 /* ============================================================
-   8. SCROLLBAR
+   10. SCROLLBAR
    ============================================================ */
 
 ::-webkit-scrollbar {
@@ -521,7 +637,7 @@ select:-webkit-autofill:focus {
 }
 
 /* ============================================================
-   9. MARKETPLACE CONTAINER
+   11. MARKETPLACE CONTAINER
    ============================================================ */
 
 .container-marketplace {
@@ -533,7 +649,7 @@ select:-webkit-autofill:focus {
   margin-inline: auto;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .container-marketplace {
     width: min(
       calc(100% - 3rem),
@@ -542,7 +658,7 @@ select:-webkit-autofill:focus {
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1024px) {
   .container-marketplace {
     width: min(
       calc(100% - 4rem),
@@ -551,31 +667,120 @@ select:-webkit-autofill:focus {
   }
 }
 
+@media (min-width: 1440px) {
+  .container-marketplace {
+    width: min(
+      calc(100% - 5rem),
+      var(--content-width)
+    );
+  }
+}
+
 /* ============================================================
-   10. MARKETPLACE CARD
+   12. MARKETPLACE CARD
    ============================================================ */
 
 .marketplace-card {
+  position: relative;
+
   background: var(--surface);
 
   border: 1px solid var(--border);
+
   border-radius: var(--radius-lg);
 
-  box-shadow: var(--shadow-marketplace-sm);
+  box-shadow:
+    var(--shadow-marketplace-sm);
 
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
-    border-color 180ms ease;
+    border-color 180ms ease,
+    background-color 180ms ease;
 }
 
 .marketplace-card:hover {
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-marketplace);
+
+  box-shadow:
+    var(--shadow-marketplace);
+
+  transform: translateY(-1px);
 }
 
 /* ============================================================
-   11. MARKETPLACE INPUT
+   13. PREMIUM CARD
+   ============================================================ */
+
+.marketplace-card-premium {
+  position: relative;
+
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      180deg,
+      var(--surface),
+      var(--surface-secondary)
+    );
+
+  border: 1px solid var(--border);
+
+  border-radius: var(--radius-2xl);
+
+  box-shadow:
+    var(--shadow-marketplace);
+
+  isolation: isolate;
+
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    border-color 220ms ease;
+}
+
+.marketplace-card-premium::before {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgb(255 255 255 / 0.10),
+      transparent 35%
+    );
+
+  opacity: 0;
+
+  transition:
+    opacity 220ms ease;
+}
+
+.marketplace-card-premium:hover {
+  transform: translateY(-3px);
+
+  border-color:
+    color-mix(
+      in oklab,
+      var(--primary) 30%,
+      var(--border)
+    );
+
+  box-shadow:
+    var(--shadow-marketplace-xl);
+}
+
+.marketplace-card-premium:hover::before {
+  opacity: 1;
+}
+
+/* ============================================================
+   14. MARKETPLACE INPUT
    ============================================================ */
 
 .marketplace-input {
@@ -589,6 +794,7 @@ select:-webkit-autofill:focus {
   background: var(--surface);
 
   border: 1px solid var(--border-strong);
+
   border-radius: var(--radius-md);
 
   color: var(--foreground);
@@ -598,15 +804,17 @@ select:-webkit-autofill:focus {
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
-    background-color 160ms ease;
-}
-
-.marketplace-input::placeholder {
-  color: var(--muted-light);
+    background-color 160ms ease,
+    transform 160ms ease;
 }
 
 .marketplace-input:hover:not(:disabled) {
-  border-color: var(--border-strong);
+  border-color:
+    color-mix(
+      in oklab,
+      var(--primary) 30%,
+      var(--border-strong)
+    );
 }
 
 .marketplace-input:focus-visible {
@@ -620,14 +828,159 @@ select:-webkit-autofill:focus {
 }
 
 /* ============================================================
-   12. TOAST ROOT
+   15. MARKETPLACE BUTTON HELPERS
+   ============================================================ */
+
+.marketplace-button {
+  display: inline-flex;
+
+  min-height: 44px;
+
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  padding:
+    0.625rem
+    1rem;
+
+  border: 1px solid transparent;
+
+  border-radius: var(--radius-md);
+
+  font-weight: 700;
+
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
+}
+
+.marketplace-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.marketplace-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.marketplace-button:disabled {
+  opacity: 0.6;
+}
+
+/* ============================================================
+   16. PREMIUM GRADIENT TEXT
+   ============================================================ */
+
+.marketplace-gradient-text {
+  background:
+    linear-gradient(
+      90deg,
+      var(--primary),
+      oklch(0.65 0.18 220),
+      oklch(0.70 0.16 200)
+    );
+
+  background-clip: text;
+  -webkit-background-clip: text;
+
+  color: transparent;
+}
+
+/* ============================================================
+   17. GLASS SURFACE
+   ============================================================ */
+
+.marketplace-glass {
+  background:
+    color-mix(
+      in oklab,
+      var(--surface) 78%,
+      transparent
+    );
+
+  border: 1px solid
+    color-mix(
+      in oklab,
+      var(--border) 80%,
+      transparent
+    );
+
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ============================================================
+   18. STATUS INDICATOR
+   ============================================================ */
+
+.marketplace-status {
+  display: inline-flex;
+
+  align-items: center;
+  gap: 0.375rem;
+
+  border-radius: var(--radius-full);
+
+  font-size: 0.6875rem;
+  font-weight: 700;
+
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+.marketplace-status::before {
+  content: "";
+
+  width: 0.375rem;
+  height: 0.375rem;
+
+  border-radius: 9999px;
+
+  background: currentColor;
+}
+
+/* ============================================================
+   19. SHIMMER
+   ============================================================ */
+
+.marketplace-shimmer {
+  background:
+    linear-gradient(
+      110deg,
+      var(--surface-secondary) 8%,
+      var(--surface-tertiary) 18%,
+      var(--surface-secondary) 33%
+    );
+
+  background-size:
+    200% 100%;
+
+  animation:
+    shimmer 1.6s linear infinite;
+}
+
+/* ============================================================
+   20. TOAST ROOT
    ============================================================ */
 
 #toast-root {
   position: fixed;
 
-  right: 1rem;
-  bottom: 1rem;
+  right:
+    max(
+      1rem,
+      var(--safe-area-right)
+    );
+
+  bottom:
+    max(
+      1rem,
+      var(--safe-area-bottom)
+    );
 
   z-index: 9999;
 
@@ -644,24 +997,69 @@ select:-webkit-autofill:focus {
 }
 
 /* ============================================================
-   13. DIALOG
+   21. DIALOG
    ============================================================ */
 
 dialog {
+  max-width: calc(100vw - 2rem);
+
   color: var(--foreground);
+
   background: var(--surface);
+
   border: 1px solid var(--border);
+
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-marketplace-xl);
+
+  box-shadow:
+    var(--shadow-marketplace-xl);
 }
 
 dialog::backdrop {
-  background: rgb(15 23 42 / 0.55);
-  backdrop-filter: blur(4px);
+  background:
+    rgb(15 23 42 / 0.55);
+
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 
 /* ============================================================
-   14. REDUCED MOTION
+   22. CONTENT PERFORMANCE
+   ============================================================ */
+
+.marketplace-section {
+  content-visibility: auto;
+
+  contain-intrinsic-size:
+    auto 700px;
+}
+
+/* ============================================================
+   23. TEXT UTILITIES
+   ============================================================ */
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* ============================================================
+   24. MOBILE TOUCH TARGETS
+   ============================================================ */
+
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ============================================================
+   25. REDUCED MOTION
    ============================================================ */
 
 @media (prefers-reduced-motion: reduce) {
@@ -674,13 +1072,15 @@ dialog::backdrop {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+
     scroll-behavior: auto !important;
+
     transition-duration: 0.01ms !important;
   }
 }
 
 /* ============================================================
-   15. PRINT
+   26. PRINT
    ============================================================ */
 
 @media print {
@@ -688,6 +1088,7 @@ dialog::backdrop {
     color-scheme: light;
   }
 
+  html,
   body {
     background: #ffffff;
     color: #000000;
@@ -697,4 +1098,97 @@ dialog::backdrop {
   #toast-root {
     display: none !important;
   }
+
+  a {
+    color: #000000;
+    text-decoration: underline;
+  }
+
+  button {
+    display: none !important;
+  }
+}
+
+/* ============================================================
+   27. HIGH CONTRAST / FORCED COLORS
+   ============================================================ */
+
+@media (forced-colors: active) {
+  *,
+  *::before,
+  *::after {
+    forced-color-adjust: auto;
+  }
+
+  :focus-visible {
+    outline:
+      2px solid
+      CanvasText;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    border:
+      1px solid
+      ButtonText;
+  }
+}
+
+/* ============================================================
+   28. DARK MODE REFINEMENTS
+   ============================================================ */
+
+.dark .marketplace-card-premium::before {
+  background:
+    linear-gradient(
+      135deg,
+      rgb(255 255 255 / 0.04),
+      transparent 35%
+    );
+}
+
+.dark .marketplace-shimmer {
+  background:
+    linear-gradient(
+      110deg,
+      var(--surface-secondary) 8%,
+      var(--surface-tertiary) 18%,
+      var(--surface-secondary) 33%
+    );
+
+  background-size: 200% 100%;
+}
+
+/* ============================================================
+   29. SAFE AREA SUPPORT
+   ============================================================ */
+
+.safe-area-bottom {
+  padding-bottom:
+    max(
+      1rem,
+      var(--safe-area-bottom)
+    );
+}
+
+.safe-area-top {
+  padding-top:
+    max(
+      1rem,
+      var(--safe-area-top)
+    );
+}
+
+/* ============================================================
+   30. FINAL DOCUMENT DEFAULTS
+   ============================================================ */
+
+::placeholder {
+  color: var(--muted-light);
+}
+
+::marker {
+  color: var(--primary);
 }
