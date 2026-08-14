@@ -1,59 +1,242 @@
-'use client'
+'use client';
 
-import { useLanguage } from '@/context/LanguageContext'
-import Link from 'next/link'
+// ==========================================================
+// ARCHIVO: src/components/Header.tsx
+// Credi Marketplace
+//
+// Barra superior institucional/utilitaria.
+//
+// RESPONSABILIDADES:
+// - Mostrar identidad global de la plataforma.
+// - Mostrar subtítulo institucional.
+// - Permitir cambiar el idioma.
+// - Mantener accesibilidad.
+// - Complementar al Navbar.
+//
+// NO RESPONSABILIDADES:
+// - Autenticación.
+// - Cierre de sesión.
+// - Navegación principal.
+// - Selección de región.
+// - Gestión de roles.
+// - Consultas a Supabase.
+//
+// IMPORTANTE:
+// El catálogo de idiomas proviene exclusivamente de:
+// src/i18n/config.ts
+//
+// Este componente NO debe volver a declarar:
+// 'es' | 'en' | 'pt' | 'fr'
+// ==========================================================
+
+import Link from 'next/link';
+
+import {
+  useLanguage,
+} from '@/context/LanguageContext';
+
+import {
+  locales,
+  type Locale,
+} from '@/i18n/config';
+
+// ==========================================================
+// COMPONENTE
+// ==========================================================
 
 export default function Header() {
-  const { lang, setLang, t } = useLanguage()
+  const {
+    lang,
+    setLang,
+    t,
+  } = useLanguage();
+
+  // ========================================================
+  // CAMBIO DE IDIOMA
+  // ========================================================
+
+  const handleLanguageChange = (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    setLang(event.target.value as Locale);
+  };
 
   return (
-    <header className="bg-slate-900 text-white text-xs py-2 px-4 sticky top-0 z-50 shadow-md">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
-        {/* Enlaces de navegación rápida y subtítulo */}
-        <div className="flex flex-wrap items-center gap-4">
-          <Link href="/" className="font-bold text-white hover:text-emerald-400 transition">
-            Markeplace
+    <header
+      className="
+        sticky
+        top-0
+        z-40
+        border-b
+        border-slate-800
+        bg-slate-950
+        text-white
+        shadow-sm
+      "
+    >
+      <div
+        className="
+          mx-auto
+          flex
+          max-w-7xl
+          flex-col
+          items-center
+          justify-between
+          gap-3
+          px-4
+          py-2
+          sm:flex-row
+          sm:px-6
+          lg:px-8
+        "
+      >
+
+        {/* ==================================================
+            IDENTIDAD INSTITUCIONAL
+        ================================================== */}
+
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+
+          <Link
+            href="/"
+            className="
+              font-bold
+              tracking-tight
+              text-white
+              transition-colors
+              hover:text-emerald-400
+              focus:outline-none
+              focus-visible:rounded
+              focus-visible:ring-2
+              focus-visible:ring-emerald-400
+              focus-visible:ring-offset-2
+              focus-visible:ring-offset-slate-950
+            "
+            aria-label="Credi Marketplace - Inicio"
+          >
+            Credi Marketplace
           </Link>
-          <span className="hidden md:inline text-slate-600">|</span>
-          <span className="flex items-center gap-1 font-semibold text-emerald-400">
-            <i className="fa-solid fa-earth-americas"></i> {t('subtitle') || 'Plataforma Global'}
+
+          <span
+            aria-hidden="true"
+            className="hidden text-slate-700 sm:inline"
+          >
+            |
           </span>
-          <span className="hidden md:inline text-slate-600">|</span>
-          <nav className="hidden lg:flex items-center gap-4 text-slate-300">
-            <Link href="/products" className="hover:text-white transition">Productos</Link>
-            <Link href="/magazines" className="hover:text-white transition">Revistas Científicas</Link>
-            <Link href="/jobs" className="hover:text-white transition">Empleos</Link>
-          </nav>
+
+          <span
+            className="
+              inline-flex
+              items-center
+              gap-2
+              font-semibold
+              text-emerald-400
+            "
+          >
+            <i
+              className="fa-solid fa-earth-americas"
+              aria-hidden="true"
+            />
+
+            {t('subtitle')}
+          </span>
+
         </div>
 
-        {/* Selector de idioma y accesos de cuenta */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Link href="/auth/login" className="hover:text-emerald-400 transition font-medium">
-              Iniciar Sesión
-            </Link>
-            <span className="text-slate-600">/</span>
-            <Link href="/auth/register" className="hover:text-emerald-400 transition font-medium">
-              Registrarse
-            </Link>
-          </div>
+        {/* ==================================================
+            CONTROLES DEL HEADER
+        ================================================== */}
 
-          <div className="flex items-center bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700">
-            <i className="fa-solid fa-globe text-emerald-400 mr-2"></i>
-            <select
-              value={lang}
-              aria-label="Seleccionar idioma"
-              onChange={(e) => setLang(e.target.value as 'es' | 'en' | 'pt' | 'fr')}
-              className="bg-transparent text-white focus:outline-none cursor-pointer"
+        <div className="flex items-center gap-3">
+
+          {/* =================================================
+              SELECTOR DE IDIOMA
+          ================================================= */}
+
+          <div
+            className="
+              flex
+              items-center
+              rounded-lg
+              border
+              border-slate-700
+              bg-slate-900
+              px-2.5
+              py-1
+            "
+          >
+            <i
+              className="
+                fa-solid
+                fa-globe
+                mr-2
+                text-emerald-400
+              "
+              aria-hidden="true"
+            />
+
+            <label
+              htmlFor="language-selector"
+              className="sr-only"
             >
-              <option value="es" className="bg-slate-800">Español</option>
-              <option value="en" className="bg-slate-800">English</option>
-              <option value="pt" className="bg-slate-800">Português</option>
-              <option value="fr" className="bg-slate-800">Français</option>
+              Seleccionar idioma
+            </label>
+
+            <select
+              id="language-selector"
+              value={lang}
+              onChange={handleLanguageChange}
+              className="
+                cursor-pointer
+                bg-transparent
+                text-xs
+                font-medium
+                text-white
+                outline-none
+                focus-visible:ring-2
+                focus-visible:ring-emerald-400
+                rounded
+              "
+            >
+              {locales.map((locale) => (
+                <option
+                  key={locale}
+                  value={locale}
+                  className="bg-slate-900 text-white"
+                >
+                  {getLanguageName(locale)}
+                </option>
+              ))}
             </select>
           </div>
+
         </div>
       </div>
     </header>
-  )
+  );
+}
+
+// ==========================================================
+// NOMBRES VISIBLES DE LOS IDIOMAS
+// ==========================================================
+
+function getLanguageName(
+  locale: Locale,
+): string {
+  switch (locale) {
+    case 'es':
+      return 'Español';
+
+    case 'en':
+      return 'English';
+
+    case 'pt':
+      return 'Português';
+
+    case 'fr':
+      return 'Français';
+
+    default:
+      return locale;
+  }
 }
