@@ -5,11 +5,19 @@ node_modules/
 .pnpm-store/
 
 # =========================================================
-# NEXT.JS & TURBOPACK
+# NEXT.JS
 # =========================================================
 .next/
 out/
+
+# =========================================================
+# VERCEL
+# =========================================================
 .vercel/
+
+# =========================================================
+# TURBOPACK / BUILD CACHE
+# =========================================================
 .turbo/
 
 # =========================================================
@@ -20,21 +28,25 @@ out/
 .dev.vars
 
 # =========================================================
-# ENVIRONMENT / SECRETS (IGNORA TODAS LAS CLAVES LOCALES)
+# ENVIRONMENT VARIABLES / SECRETS
 # =========================================================
 .env
 .env.*
 !.env.example
-*.env.bak
 
-# Archivos explícitos de entorno local
+# Backup / temporary environment files
+*.env.bak
+*.env.backup
+*.env.local.bak
+
+# Explicit local environment files
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
 # =========================================================
-# SUPABASE CLI LOCAL
+# SUPABASE CLI
 # =========================================================
 .supabase/local/
 .supabase/*.branches
@@ -47,39 +59,24 @@ out/
 next-env.d.ts
 
 # =========================================================
-# DEBUG / LOGS
+# LOGS / DEBUG
 # =========================================================
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-bun.lockb
+bun-debug.log*
 lerna-debug.log*
-*.log
-
-# =========================================================
-# OS & TEMPORARY FILES
-# =========================================================
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-
-# =========================================================
-# IDE & EDITORS
-# =========================================================
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-!.vscode/tasks.json
-!.vscode/launch.json
-.idea/
 
 # =========================================================
 # TEST / COVERAGE
 # =========================================================
 coverage/
 .nyc_output/
+.playwright/
+test-results/
+blob-report/
 
 # =========================================================
 # BUILD OUTPUT
@@ -88,7 +85,46 @@ dist/
 build/
 
 # =========================================================
-# CLOUDFLARE / EXTRA
+# CLOUDFLARE / RUNTIME GENERATED FILES
 # =========================================================
 cloudflare-env.d.ts
 .bun/
+
+# =========================================================
+# OS
+# =========================================================
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =========================================================
+# EDITORS / IDE
+# =========================================================
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Vim / temporary editor files
+*.swp
+*.swo
+*~
+
+# =========================================================
+# SECURITY / LOCAL CREDENTIALS
+# =========================================================
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# =========================================================
+# MISCELLANEOUS
+# =========================================================
+*.tmp
+*.temp
