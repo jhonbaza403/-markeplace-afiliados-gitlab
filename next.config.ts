@@ -1,38 +1,126 @@
-import type { NextConfig } from 'next';
+import type { NextConfig } from 'next'
+
+const securityHeaders = [
+  {
+    key: 'X-DNS-Prefetch-Control',
+    value: 'on',
+  },
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload',
+  },
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff',
+  },
+  {
+    key: 'X-Frame-Options',
+    value: 'SAMEORIGIN',
+  },
+  {
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin',
+  },
+  {
+    key: 'Permissions-Policy',
+    value:
+      'accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), usb=(), xr-spatial-tracking=()',
+  },
+]
 
 const nextConfig: NextConfig = {
-  /* 🚀 React Compiler (React 19) */
-  experimental: {
-    reactCompiler: true,
-  },
+  /**
+   * =======================================================
+   * REACT 19 / REACT COMPILER
+   * =======================================================
+   *
+   * Stable in Next.js 16.
+   *
+   * Automatically optimizes React components and reduces
+   * the need for manual useMemo/useCallback optimization.
+   */
+  reactCompiler: true,
 
-  /* ⚡ Optimización de Imágenes en Vercel */
+  /**
+   * =======================================================
+   * REACT
+   * =======================================================
+   */
+  reactStrictMode: true,
+
+  /**
+   * =======================================================
+   * SECURITY
+   * =======================================================
+   */
+  poweredByHeader: false,
+
+  /**
+   * =======================================================
+   * IMAGES
+   * =======================================================
+   */
   images: {
     formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
+    dangerouslyAllowSVG: false,
   },
 
-  /* 🛡️ Modos de seguridad y Headers para Cloudflare */
-  reactStrictMode: true,
-  poweredByHeader: false, // Oculta 'X-Powered-By: Next.js' por seguridad
+  /**
+   * =======================================================
+   * TYPESCRIPT
+   * =======================================================
+   *
+   * Never bypass TypeScript errors during production builds.
+   */
+  typescript: {
+    ignoreBuildErrors: false,
+  },
 
-  /* 🌐 Confianza en las cabeceras del proxy de Cloudflare */
+  /**
+   * =======================================================
+   * ESLINT
+   * =======================================================
+   *
+   * Linting is handled by the project's ESLint setup/CI.
+   * Next.js 16 no longer relies on `next lint`.
+   */
+
+  /**
+   * =======================================================
+   * PERFORMANCE / BUNDLE OPTIMIZATION
+   * =======================================================
+   */
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      'date-fns',
+      'zod',
+    ],
+  },
+
+  /**
+   * =======================================================
+   * TYPED ROUTES
+   * =======================================================
+   *
+   * Gives compile-time checking for internal Next.js links.
+   */
+  typedRoutes: true,
+
+  /**
+   * =======================================================
+   * SECURITY HEADERS
+   * =======================================================
+   */
   async headers() {
     return [
       {
         source: '/:path*',
-        headers: [
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on',
-          },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
-          },
-        ],
+        headers: securityHeaders,
       },
-    ];
+    ]
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig
