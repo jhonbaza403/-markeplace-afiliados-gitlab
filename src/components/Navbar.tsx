@@ -4,32 +4,51 @@
 // ARCHIVO: src/components/Navbar.tsx
 // Credi Marketplace
 //
-// Navegación principal de la plataforma.
+// Navbar principal de la plataforma.
+//
+// Next.js 16.3
+// React 19
 //
 // RESPONSABILIDADES:
-// - Mostrar identidad de Credi Marketplace.
-// - Navegar hacia las áreas principales.
-// - Mostrar región activa.
-// - Mostrar estado de autenticación.
-// - Mostrar accesos según rol.
-// - Permitir cerrar sesión.
-// - Mantener accesibilidad básica.
+// - Identidad de Credi Marketplace.
+// - Navegación principal.
+// - Selector de región.
+// - Estado de autenticación.
+// - Accesos según rol.
+// - Cierre de sesión.
+// - Navegación responsive.
+// - Accesibilidad.
 //
-// DEPENDENCIAS:
-// - AuthContext
-// - RegionSelector
-//
-// IMPORTANTE:
-// Este componente NO debe consultar directamente Supabase.
+// REGLA ARQUITECTÓNICA:
+// Este componente NO consulta Supabase directamente.
 // Toda la información de autenticación proviene de AuthContext.
 // ==========================================================
 
 import Link from 'next/link';
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from 'react';
+
+import {
+  ArrowRight,
+  Building2,
+  ChevronDown,
+  Globe2,
+  LogIn,
+  LogOut,
+  Menu,
+  Package,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Store,
+  UserPlus,
+  Users,
+  X,
+} from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
 import { RegionSelector } from '@/components/RegionSelector';
@@ -49,16 +68,115 @@ type UserRole =
   | 'afiliado'
   | string;
 
+type NavigationItem = {
+  readonly href: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly icon?: React.ComponentType<{
+    className?: string;
+    'aria-hidden'?: boolean | 'true' | 'false';
+  }>;
+};
+
+type RoleNavigation = {
+  readonly href: string;
+  readonly label: string;
+  readonly shortLabel: string;
+  readonly icon: React.ComponentType<{
+    className?: string;
+    'aria-hidden'?: boolean | 'true' | 'false';
+  }>;
+  readonly className: string;
+};
+
 // ==========================================================
-// 2. COMPONENTE
+// 2. NAVEGACIÓN PRINCIPAL
+// ==========================================================
+
+const primaryNavigation: readonly NavigationItem[] = [
+  {
+    href: '/productos',
+    label: 'Productos',
+    description: 'Descubre productos disponibles en el marketplace.',
+    icon: Package,
+  },
+  {
+    href: '/servicios',
+    label: 'Servicios',
+    description: 'Encuentra profesionales y servicios especializados.',
+    icon: Store,
+  },
+  {
+    href: '/ofertas',
+    label: 'Ofertas',
+    description: 'Explora oportunidades y promociones.',
+    icon: Sparkles,
+  },
+  {
+    href: '/empleos',
+    label: 'Empleos',
+    description: 'Encuentra oportunidades profesionales.',
+    icon: Users,
+  },
+];
+
+// ==========================================================
+// 3. ACCESOS SEGÚN ROL
+// ==========================================================
+
+const roleNavigation: Readonly<Record<string, RoleNavigation>> = {
+  admin: {
+    href: '/dashboard/admin',
+    label: 'Panel Administrador',
+    shortLabel: 'Admin',
+    icon: ShieldCheck,
+    className:
+      'border-purple-500/20 bg-purple-500/10 text-purple-700 hover:bg-purple-500/20 dark:text-purple-300',
+  },
+
+  vendedor: {
+    href: '/dashboard/seller',
+    label: 'Panel Vendedor',
+    shortLabel: 'Vendedor',
+    icon: Store,
+    className:
+      'border-blue-500/20 bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 dark:text-blue-300',
+  },
+
+  afiliado: {
+    href: '/dashboard/affiliate',
+    label: 'Panel Afiliado',
+    shortLabel: 'Afiliado',
+    icon: ShoppingBag,
+    className:
+      'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300',
+  },
+
+  empresa: {
+    href: '/dashboard/company',
+    label: 'Panel Empresa',
+    shortLabel: 'Empresa',
+    icon: Building2,
+    className:
+      'border-cyan-500/20 bg-cyan-500/10 text-cyan-700 hover:bg-cyan-500/20 dark:text-cyan-300',
+  },
+
+  profesional: {
+    href: '/dashboard/professional',
+    label: 'Panel Profesional',
+    shortLabel: 'Profesional',
+    icon: Users,
+    className:
+      'border-indigo-500/20 bg-indigo-500/10 text-indigo-700 hover:bg-indigo-500/20 dark:text-indigo-300',
+  },
+};
+
+// ==========================================================
+// 4. COMPONENTE PRINCIPAL
 // ==========================================================
 
 export default function Navbar() {
-  const {
-    user,
-    profile,
-    signOut,
-  } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] =
     useState(false);
@@ -67,27 +185,16 @@ export default function Navbar() {
     useState(false);
 
   // ========================================================
-  // 3. INFORMACIÓN DEL USUARIO
+  // 5. INFORMACIÓN DEL USUARIO
   // ========================================================
 
-  /**
-   * El AuthContext ya normaliza el perfil.
-   *
-   * Por tanto, aquí NO debemos intentar leer:
-   *
-   * profile.role
-   * profile.full_name
-   *
-   * El contrato oficial es:
-   *
-   * profile.rol
-   * profile.nombre
-   */
   const userRole = profile?.rol as UserRole | undefined;
 
   const displayName = useMemo(() => {
-    if (profile?.nombre?.trim()) {
-      return profile.nombre.trim();
+    const name = profile?.nombre?.trim();
+
+    if (name) {
+      return name;
     }
 
     if (user?.email) {
@@ -98,23 +205,17 @@ export default function Navbar() {
   }, [profile?.nombre, user?.email]);
 
   // ========================================================
-  // 4. NORMALIZACIÓN DE ROLES
+  // 6. NORMALIZACIÓN DE ROL
   // ========================================================
 
-  /**
-   * Normaliza variantes provenientes de la base de datos.
-   *
-   * Ejemplos:
-   *
-   * vendor    → vendedor
-   * affiliate → afiliado
-   */
   const normalizedRole = useMemo(() => {
     if (!userRole) {
       return null;
     }
 
-    switch (userRole.toLowerCase()) {
+    const role = userRole.trim().toLowerCase();
+
+    switch (role) {
       case 'vendor':
         return 'vendedor';
 
@@ -122,12 +223,40 @@ export default function Navbar() {
         return 'afiliado';
 
       default:
-        return userRole.toLowerCase();
+        return role;
     }
   }, [userRole]);
 
   // ========================================================
-  // 5. CIERRE DE SESIÓN
+  // 7. ACCESO DEL ROL ACTUAL
+  // ========================================================
+
+  const currentRoleNavigation = useMemo(() => {
+    if (!normalizedRole) {
+      return null;
+    }
+
+    return roleNavigation[normalizedRole] ?? null;
+  }, [normalizedRole]);
+
+  // ========================================================
+  // 8. CERRAR MENÚ MÓVIL
+  // ========================================================
+
+  const closeMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
+
+  // ========================================================
+  // 9. TOGGLE MENÚ MÓVIL
+  // ========================================================
+
+  const toggleMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen((current) => !current);
+  }, []);
+
+  // ========================================================
+  // 10. CIERRE DE SESIÓN
   // ========================================================
 
   const handleSignOut = useCallback(async () => {
@@ -137,29 +266,73 @@ export default function Navbar() {
 
     try {
       setIsSigningOut(true);
-      setIsMobileMenuOpen(false);
+      closeMobileMenu();
 
       await signOut();
     } catch (error) {
       console.error(
-        'Error al cerrar sesión:',
+        '[Navbar] Error al cerrar sesión:',
         error,
       );
     } finally {
       setIsSigningOut(false);
     }
-  }, [isSigningOut, signOut]);
+  }, [
+    closeMobileMenu,
+    isSigningOut,
+    signOut,
+  ]);
 
   // ========================================================
-  // 6. CIERRE DEL MENÚ MÓVIL
+  // 11. CERRAR MENÚ CON ESC
   // ========================================================
 
-  const closeMobileMenu = useCallback(() => {
-    setIsMobileMenuOpen(false);
-  }, []);
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeMobileMenu();
+      }
+    };
+
+    document.addEventListener(
+      'keydown',
+      handleKeyDown,
+    );
+
+    return () => {
+      document.removeEventListener(
+        'keydown',
+        handleKeyDown,
+      );
+    };
+  }, [
+    closeMobileMenu,
+    isMobileMenuOpen,
+  ]);
 
   // ========================================================
-  // 7. RENDER
+  // 12. BLOQUEAR SCROLL CUANDO EL MENÚ ESTÁ ABIERTO
+  // ========================================================
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      document.body.style.overflow = '';
+      return;
+    }
+
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
+  // ========================================================
+  // 13. RENDER
   // ========================================================
 
   return (
@@ -172,107 +345,125 @@ export default function Navbar() {
         border-b
         border-[var(--border)]
         bg-[var(--background)]/90
-        backdrop-blur-md
+        shadow-sm
+        backdrop-blur-xl
         supports-[backdrop-filter]:bg-[var(--background)]/75
-        transition-colors
       "
     >
       <nav
-        className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
         aria-label="Navegación principal"
+        className="
+          container-marketplace
+          relative
+        "
       >
         {/* ==================================================
             BARRA PRINCIPAL
         ================================================== */}
 
-        <div className="flex h-16 items-center justify-between">
-
+        <div className="flex min-h-16 items-center justify-between gap-4">
           {/* =================================================
-              LOGO
+              MARCA + NAVEGACIÓN
           ================================================= */}
 
-          <div className="flex items-center">
+          <div className="flex min-w-0 items-center">
+            {/* LOGO */}
+
             <Link
               href="/"
               onClick={closeMobileMenu}
+              aria-label="Credi Marketplace — Inicio"
               className="
+                group
+                inline-flex
+                shrink-0
+                items-center
+                rounded-xl
+                px-1
+                py-2
                 text-xl
-                font-extrabold
+                font-black
                 tracking-tight
                 text-[var(--foreground)]
                 transition-opacity
                 hover:opacity-90
-                focus:outline-none
+                focus-visible:outline-none
                 focus-visible:ring-2
-                focus-visible:ring-blue-500
+                focus-visible:ring-[var(--primary)]
                 focus-visible:ring-offset-2
-                rounded-md
               "
-              aria-label="Credi Marketplace - Inicio"
             >
-              Credi{' '}
-              <span className="text-blue-600 dark:text-blue-400">
+              <span>Credi</span>
+
+              <span
+                className="
+                  ml-1
+                  bg-linear-to-r
+                  from-brand-600
+                  to-cyan-500
+                  bg-clip-text
+                  text-transparent
+                "
+              >
                 Marketplace
               </span>
             </Link>
 
-            {/* =================================================
-                NAVEGACIÓN DESKTOP
-            ================================================= */}
+            {/* NAVEGACIÓN DESKTOP */}
 
             <div
               className="
                 ml-8
                 hidden
                 items-center
-                gap-5
-                md:flex
+                gap-1
+                lg:flex
               "
             >
-              <Link
-                href="/products"
-                className="
-                  text-sm
-                  font-medium
-                  text-[var(--muted)]
-                  transition-colors
-                  hover:text-[var(--foreground)]
-                  focus:outline-none
-                  focus-visible:text-[var(--foreground)]
-                "
-              >
-                Productos
-              </Link>
+              {primaryNavigation.map((item) => {
+                const Icon = item.icon;
 
-              <Link
-                href="/magazines"
-                className="
-                  text-sm
-                  font-medium
-                  text-[var(--muted)]
-                  transition-colors
-                  hover:text-[var(--foreground)]
-                  focus:outline-none
-                  focus-visible:text-[var(--foreground)]
-                "
-              >
-                Revistas
-              </Link>
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="
+                      group
+                      inline-flex
+                      items-center
+                      gap-2
+                      rounded-xl
+                      px-3
+                      py-2
+                      text-sm
+                      font-semibold
+                      text-[var(--muted)]
+                      transition-all
+                      duration-200
+                      hover:bg-[var(--surface-secondary)]
+                      hover:text-[var(--foreground)]
+                      focus-visible:outline-none
+                      focus-visible:ring-2
+                      focus-visible:ring-[var(--primary)]
+                      focus-visible:ring-offset-2
+                    "
+                  >
+                    {Icon && (
+                      <Icon
+                        aria-hidden="true"
+                        className="
+                          size-4
+                          opacity-70
+                          transition-opacity
+                          group-hover:opacity-100
+                        "
+                      />
+                    )}
 
-              <Link
-                href="/jobs"
-                className="
-                  text-sm
-                  font-medium
-                  text-[var(--muted)]
-                  transition-colors
-                  hover:text-[var(--foreground)]
-                  focus:outline-none
-                  focus-visible:text-[var(--foreground)]
-                "
-              >
-                Empleos
-              </Link>
+                    {item.label}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
@@ -280,112 +471,109 @@ export default function Navbar() {
               ACCIONES DESKTOP
           ================================================= */}
 
-          <div className="hidden items-center gap-4 md:flex">
+          <div
+            className="
+              hidden
+              items-center
+              gap-3
+              md:flex
+            "
+          >
+            {/* REGIÓN */}
 
-            {/* Región */}
-            <RegionSelector />
+            <div className="shrink-0">
+              <RegionSelector />
+            </div>
 
-            {/* Usuario autenticado */}
+            {/* USUARIO AUTENTICADO */}
+
             {user ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {/* NOMBRE */}
 
-                {/* Nombre */}
-                <span
+                <div
                   className="
                     hidden
-                    max-w-[180px]
-                    truncate
-                    text-sm
-                    font-medium
-                    text-[var(--foreground)]
-                    lg:inline
+                    max-w-44
+                    items-center
+                    gap-2
+                    xl:flex
                   "
-                  title={displayName}
                 >
-                  {displayName}
-                </span>
-
-                {/* ==========================================
-                    ADMIN
-                ========================================== */}
-
-                {normalizedRole === 'admin' && (
-                  <Link
-                    href="/dashboard/admin"
+                  <div
+                    aria-hidden="true"
                     className="
-                      rounded-lg
-                      border
-                      border-purple-500/20
-                      bg-purple-500/10
-                      px-2.5
-                      py-1
+                      flex
+                      size-8
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-full
+                      bg-[var(--primary)]/10
                       text-xs
-                      font-semibold
-                      text-purple-600
-                      transition-colors
-                      hover:bg-purple-500/20
-                      dark:text-purple-400
+                      font-black
+                      text-[var(--primary)]
                     "
                   >
-                    Admin
+                    {displayName
+                      .charAt(0)
+                      .toUpperCase()}
+                  </div>
+
+                  <span
+                    title={displayName}
+                    className="
+                      truncate
+                      text-sm
+                      font-semibold
+                      text-[var(--foreground)]
+                    "
+                  >
+                    {displayName}
+                  </span>
+                </div>
+
+                {/* PANEL SEGÚN ROL */}
+
+                {currentRoleNavigation && (
+                  <Link
+                    href={currentRoleNavigation.href}
+                    className={`
+                      inline-flex
+                      items-center
+                      gap-1.5
+                      rounded-xl
+                      border
+                      px-3
+                      py-2
+                      text-xs
+                      font-bold
+                      transition-all
+                      duration-200
+                      hover:-translate-y-0.5
+                      focus-visible:outline-none
+                      focus-visible:ring-2
+                      focus-visible:ring-[var(--primary)]
+                      focus-visible:ring-offset-2
+                      ${currentRoleNavigation.className}
+                    `}
+                  >
+                    <currentRoleNavigation.icon
+                      aria-hidden="true"
+                      className="size-4"
+                    />
+
+                    <span className="hidden xl:inline">
+                      {currentRoleNavigation.label}
+                    </span>
+
+                    <span className="xl:hidden">
+                      {currentRoleNavigation.shortLabel}
+                    </span>
                   </Link>
                 )}
 
-                {/* ==========================================
-                    VENDEDOR
-                ========================================== */}
-
-                {normalizedRole === 'vendedor' && (
-                  <Link
-                    href="/dashboard/seller"
-                    className="
-                      rounded-lg
-                      border
-                      border-blue-500/20
-                      bg-blue-500/10
-                      px-2.5
-                      py-1
-                      text-xs
-                      font-semibold
-                      text-blue-600
-                      transition-colors
-                      hover:bg-blue-500/20
-                      dark:text-blue-400
-                    "
-                  >
-                    Panel Vendedor
-                  </Link>
-                )}
-
-                {/* ==========================================
-                    AFILIADO
-                ========================================== */}
-
-                {normalizedRole === 'afiliado' && (
-                  <Link
-                    href="/dashboard/affiliate"
-                    className="
-                      rounded-lg
-                      border
-                      border-emerald-500/20
-                      bg-emerald-500/10
-                      px-2.5
-                      py-1
-                      text-xs
-                      font-semibold
-                      text-emerald-600
-                      transition-colors
-                      hover:bg-emerald-500/20
-                      dark:text-emerald-400
-                    "
-                  >
-                    Panel Afiliado
-                  </Link>
-                )}
-
-                {/* ==========================================
-                    SALIR
-                ========================================== */}
+                {/* SALIR */}
 
                 <button
                   type="button"
@@ -393,17 +581,23 @@ export default function Navbar() {
                   disabled={isSigningOut}
                   aria-label="Cerrar sesión"
                   className="
+                    inline-flex
+                    min-h-9
+                    items-center
+                    gap-1.5
                     rounded-xl
                     bg-[var(--danger)]
                     px-3
-                    py-1.5
+                    py-2
                     text-xs
                     font-bold
                     text-white
                     shadow-sm
-                    transition-opacity
+                    transition-all
+                    duration-200
+                    hover:-translate-y-0.5
                     hover:opacity-90
-                    focus:outline-none
+                    focus-visible:outline-none
                     focus-visible:ring-2
                     focus-visible:ring-red-500
                     focus-visible:ring-offset-2
@@ -411,44 +605,86 @@ export default function Navbar() {
                     disabled:opacity-50
                   "
                 >
-                  {isSigningOut ? 'Saliendo...' : 'Salir'}
+                  <LogOut
+                    aria-hidden="true"
+                    className="size-4"
+                  />
+
+                  <span className="hidden xl:inline">
+                    {isSigningOut
+                      ? 'Saliendo...'
+                      : 'Salir'}
+                  </span>
                 </button>
               </div>
             ) : (
-              /* ============================================
+              /* ==========================================
                  USUARIO NO AUTENTICADO
-              ============================================ */
+              ========================================== */
 
-              <div className="flex items-center gap-3">
-
+              <div className="flex items-center gap-2">
                 <Link
                   href="/auth/login"
                   className="
+                    inline-flex
+                    min-h-10
+                    items-center
+                    gap-1.5
+                    rounded-xl
+                    px-3
+                    py-2
                     text-sm
                     font-semibold
                     text-[var(--muted)]
                     transition-colors
+                    hover:bg-[var(--surface-secondary)]
                     hover:text-[var(--foreground)]
+                    focus-visible:outline-none
+                    focus-visible:ring-2
+                    focus-visible:ring-[var(--primary)]
+                    focus-visible:ring-offset-2
                   "
                 >
+                  <LogIn
+                    aria-hidden="true"
+                    className="size-4"
+                  />
+
                   Entrar
                 </Link>
 
                 <Link
                   href="/auth/register"
                   className="
+                    inline-flex
+                    min-h-10
+                    items-center
+                    gap-1.5
                     rounded-xl
                     bg-[var(--primary)]
                     px-4
                     py-2
                     text-sm
-                    font-semibold
+                    font-bold
                     text-white
-                    shadow-sm
-                    transition-opacity
-                    hover:opacity-90
+                    shadow-md
+                    shadow-blue-900/10
+                    transition-all
+                    duration-200
+                    hover:-translate-y-0.5
+                    hover:bg-[var(--primary-hover)]
+                    hover:shadow-lg
+                    focus-visible:outline-none
+                    focus-visible:ring-2
+                    focus-visible:ring-[var(--primary)]
+                    focus-visible:ring-offset-2
                   "
                 >
+                  <UserPlus
+                    aria-hidden="true"
+                    className="size-4"
+                  />
+
                   Registrarse
                 </Link>
               </div>
@@ -456,66 +692,50 @@ export default function Navbar() {
           </div>
 
           {/* =================================================
-              BOTÓN MENÚ MÓVIL
+              MENÚ MÓVIL
           ================================================= */}
 
           <button
             type="button"
+            onClick={toggleMobileMenu}
             className="
               inline-flex
+              size-10
+              shrink-0
               items-center
               justify-center
-              rounded-lg
-              p-2
+              rounded-xl
+              border
+              border-[var(--border)]
+              bg-[var(--surface)]
               text-[var(--foreground)]
-              transition-colors
-              hover:bg-[var(--muted)]/10
-              focus:outline-none
+              shadow-sm
+              transition-all
+              hover:bg-[var(--surface-secondary)]
+              focus-visible:outline-none
               focus-visible:ring-2
-              focus-visible:ring-blue-500
+              focus-visible:ring-[var(--primary)]
+              focus-visible:ring-offset-2
               md:hidden
             "
             aria-label={
               isMobileMenuOpen
-                ? 'Cerrar menú'
-                : 'Abrir menú'
+                ? 'Cerrar menú de navegación'
+                : 'Abrir menú de navegación'
             }
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobile-navigation"
-            onClick={() =>
-              setIsMobileMenuOpen((current) => !current)
-            }
           >
             {isMobileMenuOpen ? (
-              <svg
-                className="h-6 w-6"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
+              <X
                 aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+                className="size-5"
+              />
             ) : (
-              <svg
-                className="h-6 w-6"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
+              <Menu
                 aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
+                className="size-5"
+              />
             )}
           </button>
         </div>
@@ -528,185 +748,323 @@ export default function Navbar() {
           <div
             id="mobile-navigation"
             className="
-              border-t
+              absolute
+              inset-x-0
+              top-full
+              max-h-[calc(100vh-4rem)]
+              overflow-y-auto
+              border-b
               border-[var(--border)]
-              py-4
+              bg-[var(--background)]
+              shadow-2xl
               md:hidden
             "
           >
-            <div className="flex flex-col gap-2">
+            <div className="space-y-4 px-4 py-5">
+              {/* ============================================
+                  NAVEGACIÓN
+              ============================================ */}
 
-              <Link
-                href="/products"
-                onClick={closeMobileMenu}
-                className="
-                  rounded-lg
-                  px-3
-                  py-2
-                  text-sm
-                  font-medium
-                  text-[var(--muted)]
-                  hover:bg-[var(--muted)]/10
-                  hover:text-[var(--foreground)]
-                "
-              >
-                Productos
-              </Link>
+              <div>
+                <p
+                  className="
+                    mb-2
+                    px-3
+                    text-[10px]
+                    font-black
+                    uppercase
+                    tracking-[0.18em]
+                    text-[var(--muted)]
+                  "
+                >
+                  Explorar
+                </p>
 
-              <Link
-                href="/magazines"
-                onClick={closeMobileMenu}
-                className="
-                  rounded-lg
-                  px-3
-                  py-2
-                  text-sm
-                  font-medium
-                  text-[var(--muted)]
-                  hover:bg-[var(--muted)]/10
-                  hover:text-[var(--foreground)]
-                "
-              >
-                Revistas
-              </Link>
+                <div className="space-y-1">
+                  {primaryNavigation.map((item) => {
+                    const Icon = item.icon;
 
-              <Link
-                href="/jobs"
-                onClick={closeMobileMenu}
-                className="
-                  rounded-lg
-                  px-3
-                  py-2
-                  text-sm
-                  font-medium
-                  text-[var(--muted)]
-                  hover:bg-[var(--muted)]/10
-                  hover:text-[var(--foreground)]
-                "
-              >
-                Empleos
-              </Link>
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={closeMobileMenu}
+                        className="
+                          flex
+                          items-center
+                          gap-3
+                          rounded-xl
+                          px-3
+                          py-3
+                          transition-colors
+                          hover:bg-[var(--surface-secondary)]
+                          focus-visible:outline-none
+                          focus-visible:ring-2
+                          focus-visible:ring-[var(--primary)]
+                        "
+                      >
+                        {Icon && (
+                          <span
+                            className="
+                              flex
+                              size-9
+                              shrink-0
+                              items-center
+                              justify-center
+                              rounded-lg
+                              bg-[var(--primary)]/10
+                              text-[var(--primary)]
+                            "
+                          >
+                            <Icon
+                              aria-hidden="true"
+                              className="size-4"
+                            />
+                          </span>
+                        )}
 
-              <div className="my-2 border-t border-[var(--border)]" />
+                        <span className="min-w-0">
+                          <span
+                            className="
+                              block
+                              text-sm
+                              font-bold
+                              text-[var(--foreground)]
+                            "
+                          >
+                            {item.label}
+                          </span>
 
-              {/* Región móvil */}
-              <div className="px-3 py-2">
-                <RegionSelector />
+                          {item.description && (
+                            <span
+                              className="
+                                mt-0.5
+                                block
+                                text-xs
+                                leading-5
+                                text-[var(--muted)]
+                              "
+                            >
+                              {item.description}
+                            </span>
+                          )}
+                        </span>
+
+                        <ArrowRight
+                          aria-hidden="true"
+                          className="
+                            ml-auto
+                            size-4
+                            text-[var(--muted-light)]
+                          "
+                        />
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Usuario móvil */}
+              <div className="border-t border-[var(--border)]" />
+
+              {/* ============================================
+                  REGIÓN
+              ============================================ */}
+
+              <div>
+                <p
+                  className="
+                    mb-2
+                    px-3
+                    text-[10px]
+                    font-black
+                    uppercase
+                    tracking-[0.18em]
+                    text-[var(--muted)]
+                  "
+                >
+                  Región
+                </p>
+
+                <div className="rounded-xl bg-[var(--surface-secondary)] p-2">
+                  <RegionSelector />
+                </div>
+              </div>
+
+              <div className="border-t border-[var(--border)]" />
+
+              {/* ============================================
+                  USUARIO
+              ============================================ */}
+
               {user ? (
-                <div className="mt-2 flex flex-col gap-2 px-3">
+                <div className="space-y-3">
+                  {/* PERFIL */}
 
-                  <div className="rounded-lg bg-[var(--muted)]/10 px-3 py-2">
-                    <p className="text-xs text-[var(--muted)]">
-                      Usuario
-                    </p>
+                  <div
+                    className="
+                      flex
+                      items-center
+                      gap-3
+                      rounded-2xl
+                      border
+                      border-[var(--border)]
+                      bg-[var(--surface)]
+                      p-4
+                    "
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="
+                        flex
+                        size-11
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-full
+                        bg-[var(--primary)]/10
+                        text-sm
+                        font-black
+                        text-[var(--primary)]
+                      "
+                    >
+                      {displayName
+                        .charAt(0)
+                        .toUpperCase()}
+                    </div>
 
-                    <p className="truncate text-sm font-semibold text-[var(--foreground)]">
-                      {displayName}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                        Cuenta
+                      </p>
+
+                      <p className="truncate text-sm font-bold text-[var(--foreground)]">
+                        {displayName}
+                      </p>
+
+                      {normalizedRole && (
+                        <p className="mt-0.5 text-xs capitalize text-[var(--muted)]">
+                          {normalizedRole}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  {normalizedRole === 'admin' && (
+                  {/* PANEL */}
+
+                  {currentRoleNavigation && (
                     <Link
-                      href="/dashboard/admin"
+                      href={currentRoleNavigation.href}
                       onClick={closeMobileMenu}
                       className="
-                        rounded-lg
-                        bg-purple-500/10
-                        px-3
-                        py-2
+                        flex
+                        items-center
+                        gap-3
+                        rounded-xl
+                        border
+                        px-4
+                        py-3
                         text-sm
-                        font-semibold
-                        text-purple-600
-                        dark:text-purple-400
+                        font-bold
+                        transition-colors
                       "
                     >
-                      Panel Administrador
+                      <currentRoleNavigation.icon
+                        aria-hidden="true"
+                        className="size-5"
+                      />
+
+                      <span>
+                        {currentRoleNavigation.label}
+                      </span>
+
+                      <ChevronDown
+                        aria-hidden="true"
+                        className="
+                          ml-auto
+                          size-4
+                          -rotate-90
+                        "
+                      />
                     </Link>
                   )}
 
-                  {normalizedRole === 'vendedor' && (
-                    <Link
-                      href="/dashboard/seller"
-                      onClick={closeMobileMenu}
-                      className="
-                        rounded-lg
-                        bg-blue-500/10
-                        px-3
-                        py-2
-                        text-sm
-                        font-semibold
-                        text-blue-600
-                        dark:text-blue-400
-                      "
-                    >
-                      Panel Vendedor
-                    </Link>
-                  )}
-
-                  {normalizedRole === 'afiliado' && (
-                    <Link
-                      href="/dashboard/affiliate"
-                      onClick={closeMobileMenu}
-                      className="
-                        rounded-lg
-                        bg-emerald-500/10
-                        px-3
-                        py-2
-                        text-sm
-                        font-semibold
-                        text-emerald-600
-                        dark:text-emerald-400
-                      "
-                    >
-                      Panel Afiliado
-                    </Link>
-                  )}
+                  {/* CERRAR SESIÓN */}
 
                   <button
                     type="button"
                     onClick={handleSignOut}
                     disabled={isSigningOut}
                     className="
-                      mt-1
+                      flex
+                      w-full
+                      items-center
+                      justify-center
+                      gap-2
                       rounded-xl
                       bg-[var(--danger)]
-                      px-3
-                      py-2
+                      px-4
+                      py-3
                       text-sm
                       font-bold
                       text-white
+                      shadow-sm
                       transition-opacity
                       hover:opacity-90
+                      focus-visible:outline-none
+                      focus-visible:ring-2
+                      focus-visible:ring-red-500
+                      focus-visible:ring-offset-2
                       disabled:cursor-not-allowed
                       disabled:opacity-50
                     "
                   >
+                    <LogOut
+                      aria-hidden="true"
+                      className="size-4"
+                    />
+
                     {isSigningOut
                       ? 'Cerrando sesión...'
                       : 'Cerrar sesión'}
                   </button>
                 </div>
               ) : (
-                <div className="mt-2 flex flex-col gap-2 px-3">
+                /* ==========================================
+                   NO AUTENTICADO
+                ========================================== */
 
+                <div className="grid grid-cols-2 gap-3">
                   <Link
                     href="/auth/login"
                     onClick={closeMobileMenu}
                     className="
+                      inline-flex
+                      min-h-11
+                      items-center
+                      justify-center
+                      gap-2
                       rounded-xl
                       border
                       border-[var(--border)]
-                      px-3
-                      py-2
-                      text-center
+                      bg-[var(--surface)]
+                      px-4
+                      py-2.5
                       text-sm
-                      font-semibold
+                      font-bold
                       text-[var(--foreground)]
+                      shadow-sm
+                      transition-colors
+                      hover:bg-[var(--surface-secondary)]
+                      focus-visible:outline-none
+                      focus-visible:ring-2
+                      focus-visible:ring-[var(--primary)]
                     "
                   >
+                    <LogIn
+                      aria-hidden="true"
+                      className="size-4"
+                    />
+
                     Entrar
                   </Link>
 
@@ -714,17 +1072,33 @@ export default function Navbar() {
                     href="/auth/register"
                     onClick={closeMobileMenu}
                     className="
+                      inline-flex
+                      min-h-11
+                      items-center
+                      justify-center
+                      gap-2
                       rounded-xl
                       bg-[var(--primary)]
-                      px-3
-                      py-2
-                      text-center
+                      px-4
+                      py-2.5
                       text-sm
-                      font-semibold
+                      font-bold
                       text-white
+                      shadow-md
+                      transition-all
+                      hover:bg-[var(--primary-hover)]
+                      focus-visible:outline-none
+                      focus-visible:ring-2
+                      focus-visible:ring-[var(--primary)]
+                      focus-visible:ring-offset-2
                     "
                   >
-                    Registrarse
+                    <UserPlus
+                      aria-hidden="true"
+                      className="size-4"
+                    />
+
+                    Crear cuenta
                   </Link>
                 </div>
               )}
