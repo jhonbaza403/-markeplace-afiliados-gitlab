@@ -1,183 +1,127 @@
-"use client";
+'use client';
 
+import { affiliateProducts } from '@/data/products';
 import { useLanguage } from '@/context/LanguageContext';
 
-export interface AffiliateProduct {
-  id: string;
-  name: string;
-  category: {
-    es: string;
-    en: string;
-    pt: string;
-    fr: string;
-  };
-  title: string;
-  description: {
-    es: string;
-    en: string;
-    pt: string;
-    fr: string;
-  };
-  badge: string;
-  badgeColor: string;
-  icon: string;
-  url: string;
-  buttonText: {
-    es: string;
-    en: string;
-    pt: string;
-    fr: string;
-  };
-}
-
-export const affiliateProducts: AffiliateProduct[] = [
-  {
-    id: "amazon",
-    name: "Amazon Global",
-    category: {
-      es: "Tecnología & Hogar",
-      en: "Tech & Home",
-      pt: "Tecnologia & Casa",
-      fr: "Technologie & Maison"
-    },
-    title: "Amazon Global Store",
-    description: {
-      es: "Compra internacional asegurada con envíos globales rápidos y garantías de fabricante.",
-      en: "Secure international shopping with fast global shipping and manufacturer warranties.",
-      pt: "Compras internacionais seguras com envio global rápido e garantia do fabricante.",
-      fr: "Achats internationaux sécurisés avec livraison mondiale rapide et garanties fabricant."
-    },
-    badge: "Amazon Partner",
-    badgeColor: "bg-amber-500",
-    icon: "fa-amazon",
-    url: "https://amzn.to/4bJJq22",
-    buttonText: {
-      es: "Comprar Ahora →",
-      en: "Buy Now →",
-      pt: "Comprar Agora →",
-      fr: "Acheter →"
-    }
+const GRID_COPY = {
+  es: {
+    title: 'Ofertas destacadas de nuestros socios',
+    description:
+      'Descubre productos y plataformas internacionales seleccionadas para nuestra comunidad.',
   },
-  {
-    id: "shein",
-    name: "Shein Fashion",
-    category: {
-      es: "Moda & Tendencias",
-      en: "Fashion & Trends",
-      pt: "Moda & Tendências",
-      fr: "Mode & Tendances"
-    },
-    title: "Shein Global Fashion",
-    description: {
-      es: "Las últimas tendencias en moda, ropa y accesorios con descuentos exclusivos para todo el mundo.",
-      en: "The latest fashion trends, clothing, and accessories with exclusive worldwide discounts.",
-      pt: "As últimas tendências da moda, roupas e acessórios com descontos exclusivos para todo o mundo.",
-      fr: "Les dernières tendances de la mode, vêtements et accessoires avec des réductions exclusives."
-    },
-    badge: "Shein Oficial",
-    badgeColor: "bg-rose-500",
-    icon: "fa-shirt",
-    url: "https://onelink.shein.com/44/5wyleaujbj2iI",
-    buttonText: {
-      es: "Ver Colección →",
-      en: "View Collection →",
-      pt: "Ver Coleção →",
-      fr: "Voir Collection →"
-    }
+  en: {
+    title: 'Featured offers from our partners',
+    description:
+      'Discover international products and platforms selected for our community.',
   },
-  {
-    id: "aliexpress",
-    name: "AliExpress Direct",
-    category: {
-      es: "Gadgets & Ofertas",
-      en: "Gadgets & Deals",
-      pt: "Gadgets & Ofertas",
-      fr: "Gadgets & Offres"
-    },
-    title: "AliExpress Direct",
-    description: {
-      es: "Productos innovadores, electrónica y accesorios con envíos directos a cualquier país.",
-      en: "Innovative products, electronics, and accessories with direct shipping to any country.",
-      pt: "Produtos inovadores, eletrônicos e acessórios com entrega direta para qualquer país.",
-      fr: "Produits innovants, électronique et accessoires avec livraison directe dans tous les pays."
-    },
-    badge: "AliExpress Deal",
-    badgeColor: "bg-red-600",
-    icon: "fa-bag-shopping",
-    url: "https://s.click.aliexpress.com/e/_c33p0iw",
-    buttonText: {
-      es: "Aprovechar Oferta →",
-      en: "Get Deal →",
-      pt: "Aproveitar Oferta →",
-      fr: "Profiter →"
-    }
+  pt: {
+    title: 'Ofertas em destaque dos nossos parceiros',
+    description:
+      'Descubra produtos e plataformas internacionais selecionados para nossa comunidade.',
   },
-  {
-    id: "alibaba",
-    name: "Alibaba Wholesale",
-    category: {
-      es: "Al Mayor B2B",
-      en: "Wholesale B2B",
-      pt: "Atacado B2B",
-      fr: "Gros B2B"
-    },
-    title: "Alibaba Wholesale",
-    description: {
-      es: "Conecta directamente con fabricantes globales para compras al por mayor y emprendimientos.",
-      en: "Connect directly with global manufacturers for wholesale purchases and businesses.",
-      pt: "Conecte-se diretamente com fabricantes globais para compras no atacado e negócios.",
-      fr: "Connectez-vous diretamente com fabricantes mondiaux pour les achats en gros."
-    },
-    badge: "Alibaba Mayor",
-    badgeColor: "bg-orange-500",
-    icon: "fa-boxes-stacked",
-    url: "https://offer.alibaba.com/cps/t9vapivb?bm=cps&src=saf",
-    buttonText: {
-      es: "Cotizar Mayorista →",
-      en: "Wholesale Quote →",
-      pt: "Cotação Atacado →",
-      fr: "Devis Gros →"
-    }
-  }
-];
+  fr: {
+    title: 'Offres sélectionnées de nos partenaires',
+    description:
+      'Découvrez des produits et plateformes internationales sélectionnés pour notre communauté.',
+  },
+} as const;
 
 export default function ProductGrid() {
   const { lang } = useLanguage();
 
+  const copy = GRID_COPY[lang];
+
   return (
-    <section id="productos" className="max-w-7xl mx-auto px-4 py-16">
-      <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold text-slate-800 mb-3">
-          {lang === 'es' ? 'Top Ofertas de Nuestros Socios' : lang === 'en' ? 'Top Partner Deals' : lang === 'pt' ? 'Melhores Ofertas de Parceiros' : 'Meilleures Offres Partenaires'}
+    <section
+      id="productos"
+      aria-labelledby="affiliate-products-title"
+      className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"
+    >
+      {/* =====================================================
+          CABECERA
+      ====================================================== */}
+
+      <div className="mx-auto mb-12 max-w-3xl text-center">
+        <h2
+          id="affiliate-products-title"
+          className="mb-3 text-3xl font-bold tracking-tight text-slate-800"
+        >
+          {copy.title}
         </h2>
-        <p className="text-slate-500 text-sm max-w-2xl mx-auto">
-          {lang === 'es' ? 'Encuentra los mejores productos a nivel global con garantía y seguridad de compra.' : 'Find the best global products with purchase guarantee and security.'}
+
+        <p className="text-sm leading-relaxed text-slate-500">
+          {copy.description}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* =====================================================
+          PRODUCTOS
+      ====================================================== */}
+
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {affiliateProducts.map((product) => (
-          <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+          <article
+            key={product.id}
+            className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+          >
             <div>
-              <div className="flex justify-between items-start mb-5">
-                <span className={`text-[10px] font-bold text-white uppercase tracking-wider px-3 py-1.5 rounded-full ${product.badgeColor}`}>
+              {/* =================================================
+                  BADGE + ICON
+              ================================================== */}
+
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <span
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white ${product.badgeColor}`}
+                >
                   {product.badge}
                 </span>
-                <i className={`fa-brands ${product.icon} text-2xl text-slate-300 group-hover:text-emerald-500 transition-colors`}></i>
+
+                <i
+                  className={`fa-brands ${product.icon} text-2xl text-slate-300 transition-colors group-hover:text-emerald-500`}
+                  aria-hidden="true"
+                />
               </div>
-              <h3 className="text-[11px] font-bold text-emerald-600 mb-1 uppercase tracking-widest">{product.category[lang]}</h3>
-              <h4 className="text-lg font-bold text-slate-800 mb-2 leading-tight">{product.title}</h4>
-              <p className="text-sm text-slate-500 mb-6 line-clamp-3">{product.description[lang]}</p>
+
+              {/* =================================================
+                  CATEGORY
+              ================================================== */}
+
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-emerald-600">
+                {product.category[lang]}
+              </p>
+
+              {/* =================================================
+                  TITLE
+              ================================================== */}
+
+              <h3 className="mb-2 text-lg font-bold leading-tight text-slate-800">
+                {product.title[lang]}
+              </h3>
+
+              {/* =================================================
+                  DESCRIPTION
+              ================================================== */}
+
+              <p className="mb-6 line-clamp-3 text-sm leading-relaxed text-slate-500">
+                {product.description[lang]}
+              </p>
             </div>
+
+            {/* ===================================================
+                AFFILIATE CTA
+            ==================================================== */}
+
             <a
               href={product.url}
               target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full text-center bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-xl transition shadow-md"
+              rel="noopener noreferrer sponsored"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="block w-full rounded-xl bg-slate-900 py-3 text-center text-sm font-semibold text-white shadow-md transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+              aria-label={`${product.buttonText[lang]} - ${product.name}`}
             >
               {product.buttonText[lang]}
             </a>
-          </div>
+          </article>
         ))}
       </div>
     </section>
