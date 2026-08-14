@@ -1,22 +1,32 @@
+```tsx
 'use client'
 
-import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
+import { useMemo, useState } from 'react'
 import { useCart } from '@/context/CartContext'
 
-interface CartItemProduct {
+interface CartProduct {
   id: string
   title: string
   price: number | string
   image_url?: string | null
+  stock?: number | null
+  is_active?: boolean
 }
 
 interface CartItem {
-  product: CartItemProduct
+  product: CartProduct
   quantity: number
 }
 
-function formatCurrency(value: number) {
+interface CartContextValue {
+  cart: CartItem[]
+  removeFromCart: (productId: string) => void
+  totalAmount: number
+}
+
+function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -25,55 +35,126 @@ function formatCurrency(value: number) {
   }).format(value)
 }
 
+function normalizePrice(value: number | string): number {
+  const parsed = typeof value === 'number' ? value : Number(value)
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 0
+  }
+
+  return parsed
+}
+
+function normalizeQuantity(value: number): number {
+  const parsed = Number(value)
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 0
+  }
+
+  return Math.floor(parsed)
+}
+
 export default function CartPage() {
   const {
     cart,
     removeFromCart,
     totalAmount,
-  } = useCart() as {
-    cart: CartItem[]
-    removeFromCart: (productId: string) => void
-    totalAmount: number
-  }
+  } = useCart() as CartContextValue
 
   const [removingId, setRemovingId] = useState<string | null>(null)
 
-  const normalizedTotal = useMemo(() => {
-    const calculatedTotal = cart.reduce((total, item) => {
-      const price = Number(item.product.price) || 0
-      const quantity = Math.max(1, Number(item.quantity) || 1)
+  /*
+   * El carrito es la fuente visual de los artículos.
+   *
+   * El precio definitivo, disponibilidad e inventario deben ser
+   * verificados nuevamente en el servidor antes de crear la orden.
+   */
+  const normalizedCart = useMemo(() => {
+    return cart
+      .map((item) => {
+        const price = normalizePrice(item.product.price)
+        const quantity = normalizeQuantity(item.quantity)
 
-      return total + price * quantity
-    }, 0)
-
-    return Number(calculatedTotal.toFixed(2))
+        return {
+          ...item,
+          price,
+          quantity,
+          subtotal: Number((price * quantity).toFixed(2)),
+        }
+      })
+      .filter((item) => item.quantity > 0)
   }, [cart])
 
+  const calculatedTotal = useMemo(() => {
+    return Number(
+      normalizedCart
+        .reduce((total, item) => total + item.subtotal, 0)
+        .toFixed(2),
+    )
+  }, [normalizedCart])
+
+  /*
+   * totalAmount continúa siendo útil como valor proveniente del
+   * CartContext, pero evitamos confiar ciegamente en él.
+   */
+  const contextTotal = Number(totalAmount)
+
   const displayTotal =
-    Number.isFinite(Number(totalAmount)) && Number(totalAmount) >= 0
-      ? Number(totalAmount)
-      : normalizedTotal
+    Number.isFinite(contextTotal) &&
+    contextTotal >= 0 &&
+    Math.abs(contextTotal - calculatedTotal) < 0.01
+      ? contextTotal
+      : calculatedTotal
 
-  const totalItems = useMemo(
-    () =>
-      cart.reduce(
-        (total, item) => total + Math.max(1, Number(item.quantity) || 1),
-        0,
-      ),
-    [cart],
-  )
+  const totalItems = useMemo(() => {
+    return normalizedCart.reduce(
+      (total, item) => total + item.quantity,
+      0,
+    )
+  }, [normalizedCart])
 
-  const handleRemove = async (productId: string) => {
+  const invalidItems = useMemo(() => {
+    return normalizedCart.filter((item) => {
+      if (item.product.is_active === false) {
+        return true
+      }
+
+      if (
+        typeof item.product.stock === 'number' &&
+        item.quantity > item.product.stock
+      ) {
+        return true
+      }
+
+      return false
+    })
+  }, [normalizedCart])
+
+  const handleRemove = (productId: string) => {
+    if (removingId) {
+      return
+    }
+
     setRemovingId(productId)
 
     try {
       removeFromCart(productId)
     } finally {
-      setRemovingId(null)
+      /*
+       * Permitimos que React procese la actualización del contexto
+       * antes de liberar el estado visual.
+       */
+      queueMicrotask(() => {
+        setRemovingId(null)
+      })
     }
   }
 
-  if (cart.length === 0) {
+  /*
+   * Carrito vacío
+   */
+  if (normalizedCart.length === 0) {
     return (
       <main className="min-h-screen bg-background px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto flex min-h-[70vh] max-w-3xl items-center justify-center">
@@ -81,7 +162,10 @@ export default function CartPage() {
             aria-labelledby="empty-cart-title"
             className="w-full rounded-[2rem] border border-border bg-card p-8 text-center shadow-xl sm:p-12"
           >
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 text-3xl text-primary">
+            <div
+              aria-hidden="true"
+              className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 text-3xl"
+            >
               🛒
             </div>
 
@@ -97,9 +181,9 @@ export default function CartPage() {
             </h1>
 
             <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-muted-foreground">
-              Explora el Marketplace, descubre productos y agrega los artículos
-              que deseas comprar. Tus productos aparecerán aquí antes de
-              iniciar el proceso de checkout.
+              Explora Credi Marketplace, descubre productos y agrega los
+              artículos que deseas comprar. Aquí aparecerán antes de iniciar
+              el proceso de checkout.
             </p>
 
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
@@ -108,6 +192,7 @@ export default function CartPage() {
                 className="inline-flex items-center justify-center rounded-2xl bg-primary px-6 py-3.5 text-sm font-black text-primary-foreground shadow-lg shadow-primary/10 transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               >
                 Explorar Marketplace
+
                 <span aria-hidden="true" className="ml-2">
                   →
                 </span>
@@ -130,7 +215,7 @@ export default function CartPage() {
     <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
 
-        {/* Encabezado */}
+        {/* Header */}
         <header className="mb-8">
           <Link
             href="/marketplace"
@@ -151,11 +236,41 @@ export default function CartPage() {
 
             <p className="mt-2 text-sm text-muted-foreground">
               {totalItems}{' '}
-              {totalItems === 1 ? 'artículo seleccionado' : 'artículos seleccionados'}{' '}
+              {totalItems === 1
+                ? 'artículo seleccionado'
+                : 'artículos seleccionados'}{' '}
               para tu compra.
             </p>
           </div>
         </header>
+
+        {/* Advertencia de disponibilidad */}
+        {invalidItems.length > 0 && (
+          <div
+            role="alert"
+            className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4"
+          >
+            <div className="flex gap-3">
+              <span
+                aria-hidden="true"
+                className="text-amber-500"
+              >
+                ⚠
+              </span>
+
+              <div>
+                <p className="text-sm font-black text-foreground">
+                  Algunos artículos requieren verificación
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  La disponibilidad y el inventario serán comprobados
+                  nuevamente antes de crear la orden.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
 
@@ -180,36 +295,44 @@ export default function CartPage() {
                 </div>
 
                 <span className="rounded-full bg-muted px-3 py-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-                  {totalItems} {totalItems === 1 ? 'unidad' : 'unidades'}
+                  {totalItems}{' '}
+                  {totalItems === 1 ? 'unidad' : 'unidades'}
                 </span>
               </div>
             </div>
 
             <div className="divide-y divide-border">
-              {cart.map((item) => {
-                const price = Number(item.product.price) || 0
-                const quantity = Math.max(1, Number(item.quantity) || 1)
-                const subtotal = price * quantity
+              {normalizedCart.map((item) => {
                 const isRemoving = removingId === item.product.id
+
+                const exceedsStock =
+                  typeof item.product.stock === 'number' &&
+                  item.quantity > item.product.stock
+
+                const inactive = item.product.is_active === false
 
                 return (
                   <article
                     key={item.product.id}
                     className={`p-6 transition ${
-                      isRemoving ? 'opacity-50' : 'hover:bg-muted/20'
+                      isRemoving
+                        ? 'pointer-events-none opacity-50'
+                        : 'hover:bg-muted/20'
                     }`}
                   >
                     <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
+                      {/* Información del producto */}
                       <div className="flex min-w-0 items-center gap-4">
-                        {/* Imagen / placeholder */}
-                        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted">
+
+                        <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-muted">
                           {item.product.image_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
+                            <Image
                               src={item.product.image_url}
                               alt={item.product.title}
-                              className="h-full w-full object-cover"
+                              fill
+                              sizes="80px"
+                              className="object-cover"
                             />
                           ) : (
                             <span
@@ -223,7 +346,7 @@ export default function CartPage() {
 
                         <div className="min-w-0">
                           <Link
-                            href={`/marketplace/products/${item.product.id}`}
+                            href={`/products/${item.product.id}`}
                             className="line-clamp-2 text-base font-black text-foreground transition hover:text-primary"
                           >
                             {item.product.title}
@@ -232,19 +355,45 @@ export default function CartPage() {
                           <p className="mt-1 text-xs text-muted-foreground">
                             Precio unitario:{' '}
                             <span className="font-bold text-foreground">
-                              {formatCurrency(price)}
+                              {formatCurrency(item.price)}
                             </span>
                           </p>
 
                           <p className="mt-1 text-xs text-muted-foreground">
                             Cantidad:{' '}
                             <span className="font-bold text-foreground">
-                              {quantity}
+                              {item.quantity}
                             </span>
                           </p>
+
+                          {typeof item.product.stock === 'number' && (
+                            <p
+                              className={`mt-1 text-xs font-semibold ${
+                                exceedsStock
+                                  ? 'text-red-500'
+                                  : 'text-muted-foreground'
+                              }`}
+                            >
+                              Stock disponible:{' '}
+                              {item.product.stock}
+                            </p>
+                          )}
+
+                          {inactive && (
+                            <span className="mt-2 inline-flex rounded-full bg-red-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-500">
+                              Producto inactivo
+                            </span>
+                          )}
+
+                          {exceedsStock && (
+                            <span className="mt-2 inline-flex rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-500">
+                              Cantidad superior al stock
+                            </span>
+                          )}
                         </div>
                       </div>
 
+                      {/* Subtotal / eliminar */}
                       <div className="flex items-center justify-between gap-6 sm:justify-end">
                         <div className="text-left sm:text-right">
                           <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -252,7 +401,7 @@ export default function CartPage() {
                           </span>
 
                           <span className="mt-1 block text-lg font-black text-foreground">
-                            {formatCurrency(subtotal)}
+                            {formatCurrency(item.subtotal)}
                           </span>
                         </div>
 
@@ -261,9 +410,11 @@ export default function CartPage() {
                           onClick={() => handleRemove(item.product.id)}
                           disabled={isRemoving}
                           aria-label={`Eliminar ${item.product.title} del carrito`}
-                          className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs font-bold text-red-500 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs font-bold text-red-500 transition hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {isRemoving ? 'Eliminando...' : 'Eliminar'}
+                          {isRemoving
+                            ? 'Eliminando...'
+                            : 'Eliminar'}
                         </button>
                       </div>
                     </div>
@@ -291,6 +442,7 @@ export default function CartPage() {
               </h2>
 
               <div className="mt-6 space-y-4">
+
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">
                     Productos
@@ -325,7 +477,7 @@ export default function CartPage() {
                   <div className="flex items-end justify-between gap-4">
                     <div>
                       <span className="text-xs font-semibold text-muted-foreground">
-                        Total
+                        Total estimado
                       </span>
 
                       <p className="mt-1 text-3xl font-black tracking-tight text-foreground">
@@ -340,11 +492,25 @@ export default function CartPage() {
                 </div>
               </div>
 
+              {invalidItems.length > 0 ? (
+                <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
+                  <p className="text-xs font-bold text-amber-500">
+                    Verificación requerida
+                  </p>
+
+                  <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+                    Antes de continuar, el servidor verificará nuevamente
+                    los productos, cantidades, precios e inventario.
+                  </p>
+                </div>
+              ) : null}
+
               <Link
                 href="/checkout"
                 className="mt-6 flex w-full items-center justify-center rounded-2xl bg-primary px-5 py-4 text-sm font-black text-primary-foreground shadow-lg shadow-primary/10 transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               >
                 Proceder al checkout
+
                 <span aria-hidden="true" className="ml-2">
                   →
                 </span>
@@ -352,39 +518,52 @@ export default function CartPage() {
 
               <Link
                 href="/marketplace"
-                className="mt-3 flex w-full items-center justify-center rounded-2xl border border-border bg-background px-5 py-3.5 text-sm font-bold text-foreground transition hover:bg-muted"
+                className="mt-3 flex w-full items-center justify-center rounded-2xl border border-border bg-background px-5 py-3.5 text-sm font-bold text-foreground transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               >
                 Seguir comprando
               </Link>
 
               <div className="mt-6 space-y-3 border-t border-border pt-5">
+
                 <div className="flex gap-3">
-                  <span className="text-emerald-500" aria-hidden="true">
+                  <span
+                    className="text-emerald-500"
+                    aria-hidden="true"
+                  >
                     ✓
                   </span>
+
                   <p className="text-[11px] leading-5 text-muted-foreground">
-                    Tu carrito se mantiene separado del proceso de pago.
+                    El carrito se mantiene separado del proceso de pago.
                   </p>
                 </div>
 
                 <div className="flex gap-3">
-                  <span className="text-emerald-500" aria-hidden="true">
+                  <span
+                    className="text-emerald-500"
+                    aria-hidden="true"
+                  >
                     ✓
                   </span>
+
                   <p className="text-[11px] leading-5 text-muted-foreground">
-                    El precio definitivo debe validarse siempre en el servidor.
+                    Los precios serán verificados nuevamente en el servidor.
                   </p>
                 </div>
 
                 <div className="flex gap-3">
-                  <span className="text-emerald-500" aria-hidden="true">
+                  <span
+                    className="text-emerald-500"
+                    aria-hidden="true"
+                  >
                     ✓
                   </span>
+
                   <p className="text-[11px] leading-5 text-muted-foreground">
-                    El pago no debe marcar una orden como completada desde el
-                    navegador.
+                    El navegador nunca debe marcar una orden como completada.
                   </p>
                 </div>
+
               </div>
             </section>
           </aside>
@@ -393,3 +572,4 @@ export default function CartPage() {
     </main>
   )
 }
+```
