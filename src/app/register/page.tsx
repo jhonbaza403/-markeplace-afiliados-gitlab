@@ -1,891 +1,471 @@
 ```tsx
-'use client';
+'use client'
 
-// ==========================================================
-// ARCHIVO: src/app/register/page.tsx
-// Credi Marketplace
-//
-// Página de registro de usuarios.
-//
-// RESPONSABILIDADES:
-// - Registrar nuevos usuarios.
-// - Validar datos básicos del formulario.
-// - Mostrar estados de carga y errores.
-// - Mantener una experiencia premium y responsive.
-// - Delegar la autenticación a authService.
-//
-// REGLA ARQUITECTÓNICA:
-// Esta página NO consulta Supabase directamente.
-// La autenticación se realiza mediante signUpUser().
-// ==========================================================
-
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
-  useCallback,
+  FormEvent,
   useState,
-  type FormEvent,
-} from 'react';
+  useTransition,
+} from 'react'
+import { createClient } from '@/lib/supabase/client'
 
-import {
-  AlertCircle,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  LockKeyhole,
-  Mail,
-  ShieldCheck,
-  User,
-  UserPlus,
-} from 'lucide-react';
+type PublicRole = 'customer' | 'vendor'
 
-import { signUpUser } from '@/features/auth/services/authService';
+interface FormErrors {
+  fullName?: string
+  email?: string
+  password?: string
+  confirmPassword?: string
+  role?: string
+}
 
-// ==========================================================
-// CONSTANTES
-// ==========================================================
+const MIN_PASSWORD_LENGTH = 8
 
-const MIN_PASSWORD_LENGTH = 8;
-
-// ==========================================================
-// COMPONENTE
-// ==========================================================
+function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
 
 export default function RegisterPage() {
-  const router = useRouter();
+  const router = useRouter()
 
-  // ========================================================
-  // ESTADO
-  // ========================================================
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [role, setRole] =
+    useState<PublicRole>('customer')
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [errors, setErrors] =
+    useState<FormErrors>({})
 
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [serverError, setServerError] =
+    useState<string | null>(null)
 
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [isPending, startTransition] =
+    useTransition()
 
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const validate = (): FormErrors => {
+    const nextErrors: FormErrors = {}
 
-  // ========================================================
-  // REGISTRO
-  // ========================================================
+    const normalizedName = fullName.trim()
+    const normalizedEmail = email.trim().toLowerCase()
 
-  const handleSubmit = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
+    if (normalizedName.length < 2) {
+      nextErrors.fullName =
+        'Introduce tu nombre completo.'
+    }
 
-      if (isSubmitting) {
-        return;
-      }
+    if (!validateEmail(normalizedEmail)) {
+      nextErrors.email =
+        'Introduce un correo electrónico válido.'
+    }
 
-      setError('');
-      setSuccess('');
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      nextErrors.password =
+        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
+    }
 
-      const normalizedName =
-        fullName.trim();
+    if (password !== confirmPassword) {
+      nextErrors.confirmPassword =
+        'Las contraseñas no coinciden.'
+    }
 
-      const normalizedEmail =
-        email.trim().toLowerCase();
+    if (
+      role !== 'customer' &&
+      role !== 'vendor'
+    ) {
+      nextErrors.role =
+        'Selecciona un tipo de cuenta válido.'
+    }
 
-      // ------------------------------------------------------
-      // VALIDACIÓN DEL NOMBRE
-      // ------------------------------------------------------
+    return nextErrors
+  }
 
-      if (normalizedName.length < 2) {
-        setError(
-          'Introduce tu nombre completo.'
-        );
-        return;
-      }
+  const handleSubmit = (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
 
-      // ------------------------------------------------------
-      // VALIDACIÓN DEL CORREO
-      // ------------------------------------------------------
+    setServerError(null)
 
-      if (!normalizedEmail) {
-        setError(
-          'Introduce un correo electrónico válido.'
-        );
-        return;
-      }
+    const validationErrors = validate()
 
-      // ------------------------------------------------------
-      // VALIDACIÓN DE CONTRASEÑA
-      // ------------------------------------------------------
+    setErrors(validationErrors)
 
-      if (
-        password.length <
-        MIN_PASSWORD_LENGTH
-      ) {
-        setError(
-          `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
-        );
-        return;
-      }
+    if (Object.keys(validationErrors).length > 0) {
+      return
+    }
 
+    startTransition(async () => {
       try {
-        setIsSubmitting(true);
+        const supabase = createClient()
 
-        await signUpUser(
-          normalizedEmail,
+        const normalizedName =
+          fullName.trim()
+
+        const normalizedEmail =
+          email.trim().toLowerCase()
+
+        const {
+          data,
+          error,
+        } = await supabase.auth.signUp({
+          email: normalizedEmail,
           password,
-          normalizedName
-        );
+          options: {
+            /*
+             * Estos metadatos son auxiliares.
+             *
+             * La autorización definitiva NO debe depender
+             * de valores enviados por el navegador.
+             */
+            data: {
+              full_name: normalizedName,
+              requested_role: role,
+            },
+          },
+        })
 
-        setSuccess(
-          'Tu cuenta fue creada correctamente.'
-        );
+        if (error) {
+          const message =
+            error.message.toLowerCase()
+
+          if (
+            message.includes(
+              'already registered',
+            )
+          ) {
+            setServerError(
+              'Este correo electrónico ya está registrado. Intenta iniciar sesión o recuperar tu contraseña.',
+            )
+          } else if (
+            message.includes('password')
+          ) {
+            setServerError(
+              'La contraseña no cumple los requisitos de seguridad.',
+            )
+          } else if (
+            message.includes('email')
+          ) {
+            setServerError(
+              'No fue posible utilizar ese correo electrónico.',
+            )
+          } else {
+            setServerError(
+              'No fue posible crear la cuenta. Inténtalo nuevamente.',
+            )
+          }
+
+          return
+        }
 
         /*
-         * El servicio de autenticación determina
-         * si la sesión queda activa inmediatamente
-         * o requiere confirmación del correo.
-         *
-         * Mantenemos el flujo centralizado en authService.
+         * Supabase puede devolver un usuario sin sesión
+         * cuando está activada la confirmación por correo.
          */
+        if (data.user && !data.session) {
+          const query = new URLSearchParams()
 
-        router.push('/dashboard');
-      } catch (err: unknown) {
+          query.set(
+            'email',
+            normalizedEmail,
+          )
+
+          router.push(
+            `/auth/verify-email?${query.toString()}`,
+          )
+
+          return
+        }
+
+        /*
+         * Si el proyecto permite sesión inmediata,
+         * enviamos al dashboard.
+         */
+        router.push('/dashboard')
+        router.refresh()
+      } catch (error: unknown) {
         console.error(
-          '[RegisterPage] Error registrando usuario:',
-          err
-        );
+          'Registration error:',
+          error,
+        )
 
-        const message =
-          err instanceof Error
-            ? err.message
-            : 'No fue posible crear la cuenta. Inténtalo nuevamente.';
-
-        setError(message);
-      } finally {
-        setIsSubmitting(false);
+        setServerError(
+          'Ocurrió un error inesperado. Inténtalo nuevamente.',
+        )
       }
-    },
-    [
-      email,
-      fullName,
-      isSubmitting,
-      password,
-      router,
-    ]
-  );
+    })
+  }
 
-  // ========================================================
-  // RENDER
-  // ========================================================
+  const inputClassName =
+    'w-full rounded-2xl border border-border bg-background px-4 py-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60'
 
   return (
-    <main
-      className="
-        relative
-        flex
-        min-h-screen
-        items-center
-        justify-center
-        overflow-hidden
-        bg-[var(--background)]
-        px-4
-        py-10
-        text-[var(--foreground)]
-        sm:px-6
-        lg:py-16
-      "
-    >
-      {/* ==================================================
-          FONDO DECORATIVO
-      ================================================== */}
-
-      <div
-        aria-hidden="true"
-        className="
-          pointer-events-none
-          absolute
-          inset-0
-          overflow-hidden
-        "
-      >
-        <div
-          className="
-            absolute
-            -left-40
-            -top-40
-            size-[28rem]
-            rounded-full
-            bg-[var(--primary)]/8
-            blur-3xl
-          "
-        />
-
-        <div
-          className="
-            absolute
-            -bottom-40
-            -right-40
-            size-[28rem]
-            rounded-full
-            bg-cyan-500/8
-            blur-3xl
-          "
-        />
-      </div>
-
-      {/* ==================================================
-          CONTENEDOR
-      ================================================== */}
-
-      <div
-        className="
-          relative
-          z-10
-          w-full
-          max-w-md
-        "
-      >
-        {/* =================================================
-            MARCA
-        ================================================= */}
-
-        <div className="mb-8 text-center">
-          <Link
-            href="/"
-            className="
-              inline-flex
-              items-center
-              rounded-xl
-              px-2
-              py-1
-              text-2xl
-              font-black
-              tracking-tight
-              text-[var(--foreground)]
-              transition-opacity
-              hover:opacity-90
-              focus-visible:outline-none
-              focus-visible:ring-2
-              focus-visible:ring-[var(--primary)]
-              focus-visible:ring-offset-2
-            "
-          >
-            Credi{' '}
-            <span
-              className="
-                ml-1
-                bg-linear-to-r
-                from-brand-600
-                to-cyan-500
-                bg-clip-text
-                text-transparent
-              "
-            >
-              Marketplace
+    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-background px-4 py-12 sm:px-6">
+      <section className="w-full max-w-xl">
+        <div className="rounded-[2rem] border border-border bg-card p-7 shadow-2xl sm:p-10">
+          <header className="text-center">
+            <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+              Credi Marketplace
             </span>
-          </Link>
 
-          <p
-            className="
-              mt-3
-              text-sm
-              text-[var(--muted)]
-            "
+            <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+              Crear tu cuenta
+            </h1>
+
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+              Crea una cuenta segura para comprar,
+              vender y utilizar los servicios de la
+              plataforma.
+            </p>
+          </header>
+
+          {serverError && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="mt-6 rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive"
+            >
+              {serverError}
+            </div>
+          )}
+
+          <form
+            onSubmit={handleSubmit}
+            className="mt-8 space-y-5"
+            noValidate
           >
-            Crea tu cuenta y comienza a formar
-            parte del marketplace.
-          </p>
+            <div>
+              <label
+                htmlFor="full-name"
+                className="mb-2 block text-xs font-black uppercase tracking-wider text-foreground"
+              >
+                Nombre completo
+              </label>
+
+              <input
+                id="full-name"
+                name="fullName"
+                type="text"
+                autoComplete="name"
+                value={fullName}
+                onChange={(event) =>
+                  setFullName(
+                    event.target.value,
+                  )
+                }
+                disabled={isPending}
+                aria-invalid={
+                  Boolean(errors.fullName)
+                }
+                aria-describedby={
+                  errors.fullName
+                    ? 'full-name-error'
+                    : undefined
+                }
+                className={inputClassName}
+                placeholder="Tu nombre completo"
+              />
+
+              {errors.fullName && (
+                <p
+                  id="full-name-error"
+                  className="mt-2 text-xs font-semibold text-destructive"
+                >
+                  {errors.fullName}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="email"
+                className="mb-2 block text-xs font-black uppercase tracking-wider text-foreground"
+              >
+                Correo electrónico
+              </label>
+
+              <input
+                id="email"
+                name="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) =>
+                  setEmail(
+                    event.target.value,
+                  )
+                }
+                disabled={isPending}
+                aria-invalid={
+                  Boolean(errors.email)
+                }
+                aria-describedby={
+                  errors.email
+                    ? 'email-error'
+                    : undefined
+                }
+                className={inputClassName}
+                placeholder="tu@correo.com"
+              />
+
+              {errors.email && (
+                <p
+                  id="email-error"
+                  className="mt-2 text-xs font-semibold text-destructive"
+                >
+                  {errors.email}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="password"
+                  className="mb-2 block text-xs font-black uppercase tracking-wider text-foreground"
+                >
+                  Contraseña
+                </label>
+
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={MIN_PASSWORD_LENGTH}
+                  value={password}
+                  onChange={(event) =>
+                    setPassword(
+                      event.target.value,
+                    )
+                  }
+                  disabled={isPending}
+                  aria-invalid={
+                    Boolean(errors.password)
+                  }
+                  className={inputClassName}
+                  placeholder="Mínimo 8 caracteres"
+                />
+
+                {errors.password && (
+                  <p className="mt-2 text-xs font-semibold text-destructive">
+                    {errors.password}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="confirm-password"
+                  className="mb-2 block text-xs font-black uppercase tracking-wider text-foreground"
+                >
+                  Confirmar contraseña
+                </label>
+
+                <input
+                  id="confirm-password"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={MIN_PASSWORD_LENGTH}
+                  value={confirmPassword}
+                  onChange={(event) =>
+                    setConfirmPassword(
+                      event.target.value,
+                    )
+                  }
+                  disabled={isPending}
+                  aria-invalid={
+                    Boolean(
+                      errors.confirmPassword,
+                    )
+                  }
+                  className={inputClassName}
+                  placeholder="Repite tu contraseña"
+                />
+
+                {errors.confirmPassword && (
+                  <p className="mt-2 text-xs font-semibold text-destructive">
+                    {errors.confirmPassword}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="role"
+                className="mb-2 block text-xs font-black uppercase tracking-wider text-foreground"
+              >
+                Tipo de cuenta
+              </label>
+
+              <select
+                id="role"
+                name="role"
+                value={role}
+                onChange={(event) =>
+                  setRole(
+                    event.target
+                      .value as PublicRole,
+                  )
+                }
+                disabled={isPending}
+                className={inputClassName}
+              >
+                <option value="customer">
+                  Comprador / Cliente
+                </option>
+
+                <option value="vendor">
+                  Vendedor / Tienda
+                </option>
+              </select>
+
+              <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+                Los permisos administrativos y
+                privilegios especiales se gestionan
+                exclusivamente desde el servidor.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isPending}
+              className="w-full rounded-2xl bg-primary px-5 py-4 text-sm font-black text-primary-foreground shadow-xl shadow-primary/10 transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isPending
+                ? 'Creando cuenta...'
+                : 'Crear cuenta'}
+            </button>
+          </form>
+
+          <div className="mt-8 border-t border-border pt-6 text-center">
+            <p className="text-xs text-muted-foreground">
+              ¿Ya tienes una cuenta?{' '}
+              <Link
+                href="/auth/login"
+                className="font-black text-primary hover:underline"
+              >
+                Inicia sesión
+              </Link>
+            </p>
+          </div>
         </div>
 
-        {/* =================================================
-            TARJETA
-        ================================================= */}
-
-        <section
-          className="
-            rounded-3xl
-            border
-            border-[var(--border)]
-            bg-[var(--surface)]
-            p-1
-            shadow-[0_24px_80px_rgba(0,0,0,0.08)]
-          "
-        >
-          <div
-            className="
-              rounded-[1.35rem]
-              border
-              border-[var(--border)]/60
-              bg-[var(--background)]
-              p-6
-              sm:p-8
-            "
-          >
-            {/* =================================================
-                CABECERA
-            ================================================= */}
-
-            <div className="mb-7">
-              <div
-                className="
-                  mb-4
-                  flex
-                  size-12
-                  items-center
-                  justify-center
-                  rounded-2xl
-                  bg-[var(--primary)]/10
-                  text-[var(--primary)]
-                "
-              >
-                <UserPlus
-                  aria-hidden="true"
-                  className="size-6"
-                />
-              </div>
-
-              <h1
-                className="
-                  text-2xl
-                  font-black
-                  tracking-tight
-                  text-[var(--foreground)]
-                  sm:text-3xl
-                "
-              >
-                Crear una cuenta
-              </h1>
-
-              <p
-                className="
-                  mt-2
-                  text-sm
-                  leading-6
-                  text-[var(--muted)]
-                "
-              >
-                Regístrate para comprar, vender,
-                ofrecer servicios y participar en
-                Credi Marketplace.
-              </p>
-            </div>
-
-            {/* =================================================
-                ERROR
-            ================================================= */}
-
-            {error && (
-              <div
-                role="alert"
-                className="
-                  mb-5
-                  flex
-                  items-start
-                  gap-3
-                  rounded-2xl
-                  border
-                  border-red-500/20
-                  bg-red-500/10
-                  p-4
-                  text-sm
-                  text-red-700
-                  dark:text-red-300
-                "
-              >
-                <AlertCircle
-                  aria-hidden="true"
-                  className="
-                    mt-0.5
-                    size-5
-                    shrink-0
-                  "
-                />
-
-                <p>{error}</p>
-              </div>
-            )}
-
-            {/* =================================================
-                ÉXITO
-            ================================================= */}
-
-            {success && (
-              <div
-                role="status"
-                className="
-                  mb-5
-                  flex
-                  items-start
-                  gap-3
-                  rounded-2xl
-                  border
-                  border-emerald-500/20
-                  bg-emerald-500/10
-                  p-4
-                  text-sm
-                  text-emerald-700
-                  dark:text-emerald-300
-                "
-              >
-                <CheckCircle2
-                  aria-hidden="true"
-                  className="
-                    mt-0.5
-                    size-5
-                    shrink-0
-                  "
-                />
-
-                <p>{success}</p>
-              </div>
-            )}
-
-            {/* =================================================
-                FORMULARIO
-            ================================================= */}
-
-            <form
-              onSubmit={handleSubmit}
-              noValidate
-              className="space-y-5"
-            >
-              {/* =================================================
-                  NOMBRE
-              ================================================= */}
-
-              <div>
-                <label
-                  htmlFor="full-name"
-                  className="
-                    mb-2
-                    block
-                    text-sm
-                    font-bold
-                    text-[var(--foreground)]
-                  "
-                >
-                  Nombre completo
-                </label>
-
-                <div className="relative">
-                  <User
-                    aria-hidden="true"
-                    className="
-                      pointer-events-none
-                      absolute
-                      left-3.5
-                      top-1/2
-                      size-5
-                      -translate-y-1/2
-                      text-[var(--muted)]
-                    "
-                  />
-
-                  <input
-                    id="full-name"
-                    name="fullName"
-                    type="text"
-                    autoComplete="name"
-                    required
-                    value={fullName}
-                    onChange={(event) =>
-                      setFullName(
-                        event.target.value
-                      )
-                    }
-                    placeholder="Tu nombre completo"
-                    disabled={isSubmitting}
-                    className="
-                      min-h-12
-                      w-full
-                      rounded-xl
-                      border
-                      border-[var(--border)]
-                      bg-[var(--surface)]
-                      pl-11
-                      pr-4
-                      text-sm
-                      text-[var(--foreground)]
-                      outline-none
-                      transition-all
-                      placeholder:text-[var(--muted-light)]
-                      focus:border-[var(--primary)]
-                      focus:ring-4
-                      focus:ring-[var(--primary)]/10
-                      disabled:cursor-not-allowed
-                      disabled:opacity-60
-                    "
-                  />
-                </div>
-              </div>
-
-              {/* =================================================
-                  EMAIL
-              ================================================= */}
-
-              <div>
-                <label
-                  htmlFor="register-email"
-                  className="
-                    mb-2
-                    block
-                    text-sm
-                    font-bold
-                    text-[var(--foreground)]
-                  "
-                >
-                  Correo electrónico
-                </label>
-
-                <div className="relative">
-                  <Mail
-                    aria-hidden="true"
-                    className="
-                      pointer-events-none
-                      absolute
-                      left-3.5
-                      top-1/2
-                      size-5
-                      -translate-y-1/2
-                      text-[var(--muted)]
-                    "
-                  />
-
-                  <input
-                    id="register-email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    inputMode="email"
-                    required
-                    value={email}
-                    onChange={(event) =>
-                      setEmail(
-                        event.target.value
-                      )
-                    }
-                    placeholder="tu@email.com"
-                    disabled={isSubmitting}
-                    className="
-                      min-h-12
-                      w-full
-                      rounded-xl
-                      border
-                      border-[var(--border)]
-                      bg-[var(--surface)]
-                      pl-11
-                      pr-4
-                      text-sm
-                      text-[var(--foreground)]
-                      outline-none
-                      transition-all
-                      placeholder:text-[var(--muted-light)]
-                      focus:border-[var(--primary)]
-                      focus:ring-4
-                      focus:ring-[var(--primary)]/10
-                      disabled:cursor-not-allowed
-                      disabled:opacity-60
-                    "
-                  />
-                </div>
-              </div>
-
-              {/* =================================================
-                  CONTRASEÑA
-              ================================================= */}
-
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label
-                    htmlFor="register-password"
-                    className="
-                      text-sm
-                      font-bold
-                      text-[var(--foreground)]
-                    "
-                  >
-                    Contraseña
-                  </label>
-
-                  <span
-                    className="
-                      text-xs
-                      font-medium
-                      text-[var(--muted)]
-                    "
-                  >
-                    Mín. {MIN_PASSWORD_LENGTH} caracteres
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <LockKeyhole
-                    aria-hidden="true"
-                    className="
-                      pointer-events-none
-                      absolute
-                      left-3.5
-                      top-1/2
-                      size-5
-                      -translate-y-1/2
-                      text-[var(--muted)]
-                    "
-                  />
-
-                  <input
-                    id="register-password"
-                    name="password"
-                    type={
-                      showPassword
-                        ? 'text'
-                        : 'password'
-                    }
-                    autoComplete="new-password"
-                    minLength={
-                      MIN_PASSWORD_LENGTH
-                    }
-                    required
-                    value={password}
-                    onChange={(event) =>
-                      setPassword(
-                        event.target.value
-                      )
-                    }
-                    placeholder="Crea una contraseña segura"
-                    disabled={isSubmitting}
-                    className="
-                      min-h-12
-                      w-full
-                      rounded-xl
-                      border
-                      border-[var(--border)]
-                      bg-[var(--surface)]
-                      pl-11
-                      pr-12
-                      text-sm
-                      text-[var(--foreground)]
-                      outline-none
-                      transition-all
-                      placeholder:text-[var(--muted-light)]
-                      focus:border-[var(--primary)]
-                      focus:ring-4
-                      focus:ring-[var(--primary)]/10
-                      disabled:cursor-not-allowed
-                      disabled:opacity-60
-                    "
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowPassword(
-                        (current) => !current
-                      )
-                    }
-                    disabled={isSubmitting}
-                    aria-label={
-                      showPassword
-                        ? 'Ocultar contraseña'
-                        : 'Mostrar contraseña'
-                    }
-                    className="
-                      absolute
-                      right-2
-                      top-1/2
-                      flex
-                      size-9
-                      -translate-y-1/2
-                      items-center
-                      justify-center
-                      rounded-lg
-                      text-[var(--muted)]
-                      transition-colors
-                      hover:bg-[var(--surface-secondary)]
-                      hover:text-[var(--foreground)]
-                      focus-visible:outline-none
-                      focus-visible:ring-2
-                      focus-visible:ring-[var(--primary)]
-                    "
-                  >
-                    {showPassword ? (
-                      <EyeOff
-                        aria-hidden="true"
-                        className="size-4"
-                      />
-                    ) : (
-                      <Eye
-                        aria-hidden="true"
-                        className="size-4"
-                      />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* =================================================
-                  SEGURIDAD
-              ================================================= */}
-
-              <div
-                className="
-                  flex
-                  items-start
-                  gap-3
-                  rounded-2xl
-                  bg-[var(--surface-secondary)]
-                  p-4
-                "
-              >
-                <ShieldCheck
-                  aria-hidden="true"
-                  className="
-                    mt-0.5
-                    size-5
-                    shrink-0
-                    text-[var(--primary)]
-                  "
-                />
-
-                <p
-                  className="
-                    text-xs
-                    leading-5
-                    text-[var(--muted)]
-                  "
-                >
-                  Utiliza una contraseña única y
-                  segura. Tus credenciales son
-                  gestionadas mediante el sistema
-                  de autenticación de la plataforma.
-                </p>
-              </div>
-
-              {/* =================================================
-                  BOTÓN
-              ================================================= */}
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="
-                  inline-flex
-                  min-h-12
-                  w-full
-                  items-center
-                  justify-center
-                  gap-2
-                  rounded-xl
-                  bg-[var(--primary)]
-                  px-5
-                  py-3
-                  text-sm
-                  font-black
-                  text-white
-                  shadow-lg
-                  shadow-blue-900/10
-                  transition-all
-                  duration-200
-                  hover:-translate-y-0.5
-                  hover:bg-[var(--primary-hover)]
-                  hover:shadow-xl
-                  focus-visible:outline-none
-                  focus-visible:ring-4
-                  focus-visible:ring-[var(--primary)]/20
-                  disabled:cursor-not-allowed
-                  disabled:translate-y-0
-                  disabled:opacity-60
-                "
-              >
-                {isSubmitting ? (
-                  <>
-                    <span
-                      aria-hidden="true"
-                      className="
-                        size-4
-                        animate-spin
-                        rounded-full
-                        border-2
-                        border-white/30
-                        border-t-white
-                      "
-                    />
-
-                    Creando cuenta...
-                  </>
-                ) : (
-                  <>
-                    <UserPlus
-                      aria-hidden="true"
-                      className="size-4"
-                    />
-
-                    Crear cuenta
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* =================================================
-                LOGIN
-            ================================================= */}
-
-            <div
-              className="
-                mt-7
-                border-t
-                border-[var(--border)]
-                pt-6
-                text-center
-              "
-            >
-              <p
-                className="
-                  text-sm
-                  text-[var(--muted)]
-                "
-              >
-                ¿Ya tienes una cuenta?{' '}
-                <Link
-                  href="/auth/login"
-                  className="
-                    font-bold
-                    text-[var(--primary)]
-                    underline-offset-4
-                    hover:underline
-                    focus-visible:outline-none
-                    focus-visible:ring-2
-                    focus-visible:ring-[var(--primary)]
-                  "
-                >
-                  Inicia sesión
-                </Link>
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* =================================================
-            AVISO
-        ================================================= */}
-
-        <p
-          className="
-            mx-auto
-            mt-6
-            max-w-sm
-            text-center
-            text-[11px]
-            leading-5
-            text-[var(--muted)]
-          "
-        >
+        <p className="mt-5 text-center text-[10px] leading-5 text-muted-foreground">
           Al crear una cuenta aceptas las condiciones
-          de uso y las políticas aplicables de Credi
-          Marketplace.
+          aplicables de uso y las políticas de la
+          plataforma.
         </p>
-      </div>
+      </section>
     </main>
-  );
+  )
+}
+```
+
 }
 ```
