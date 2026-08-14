@@ -1,4 +1,3 @@
-```tsx
 'use client'
 
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
@@ -16,7 +15,6 @@ interface Product {
 
 interface CheckoutState {
   loading: boolean
-  success: boolean
   error: string | null
 }
 
@@ -32,7 +30,6 @@ function CheckoutContent() {
 
   const [checkout, setCheckout] = useState<CheckoutState>({
     loading: false,
-    success: false,
     error: null,
   })
 
@@ -44,10 +41,10 @@ function CheckoutContent() {
     async function fetchProduct() {
       if (!productId) {
         if (mounted) {
-          setCheckout((prev) => ({
-            ...prev,
+          setCheckout({
+            loading: false,
             error: 'No se especificó ningún producto para la compra.',
-          }))
+          })
           setLoadingProduct(false)
         }
         return
@@ -70,23 +67,35 @@ function CheckoutContent() {
         }
 
         if (!data) {
-          throw new Error('El producto no existe, está inactivo o ya no está disponible.')
+          throw new Error(
+            'El producto no existe, está inactivo o ya no está disponible.'
+          )
         }
 
         if (mounted) {
           setProduct(data)
+
+          if (data.stock <= 0) {
+            setCheckout({
+              loading: false,
+              error: 'Este producto se encuentra agotado.',
+            })
+          }
         }
       } catch (error: unknown) {
-        console.error('Error al cargar el producto para checkout:', error)
+        console.error(
+          'Error al cargar el producto para checkout:',
+          error
+        )
 
         if (mounted) {
-          setCheckout((prev) => ({
-            ...prev,
+          setCheckout({
+            loading: false,
             error:
               error instanceof Error
                 ? error.message
                 : 'No fue posible cargar el producto.',
-          }))
+          })
         }
       } finally {
         if (mounted) {
@@ -104,11 +113,14 @@ function CheckoutContent() {
 
   const total = useMemo(() => {
     if (!product) return 0
-    return Number((product.price * quantity).toFixed(2))
+
+    return Number(
+      (product.price * quantity).toFixed(2)
+    )
   }, [product, quantity])
 
   const handleQuantityChange = (value: number) => {
-    if (!product) return
+    if (!product || product.stock <= 0) return
 
     const safeValue = Math.max(
       1,
@@ -118,14 +130,23 @@ function CheckoutContent() {
     setQuantity(safeValue)
   }
 
-  const handleCheckout = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCheckout = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault()
 
     if (!product) {
       setCheckout({
         loading: false,
-        success: false,
         error: 'El producto no está disponible.',
+      })
+      return
+    }
+
+    if (!product.is_active) {
+      setCheckout({
+        loading: false,
+        error: 'Este producto ya no está disponible.',
       })
       return
     }
@@ -133,24 +154,21 @@ function CheckoutContent() {
     if (product.stock <= 0) {
       setCheckout({
         loading: false,
-        success: false,
         error: 'Este producto se encuentra agotado.',
       })
       return
     }
 
-    if (quantity > product.stock) {
+    if (quantity < 1 || quantity > product.stock) {
       setCheckout({
         loading: false,
-        success: false,
-        error: 'La cantidad solicitada supera el inventario disponible.',
+        error: 'La cantidad solicitada no es válida.',
       })
       return
     }
 
     setCheckout({
       loading: true,
-      success: false,
       error: null,
     })
 
@@ -163,64 +181,85 @@ function CheckoutContent() {
       } = await supabase.auth.getUser()
 
       if (userError || !user) {
-        const currentUrl = `/checkout?product_id=${encodeURIComponent(
-          product.id
-        )}${refCode ? `&ref=${encodeURIComponent(refCode)}` : ''}`
+        const currentUrl =
+          `/checkout?product_id=${encodeURIComponent(product.id)}` +
+          `${refCode ? `&ref=${encodeURIComponent(refCode)}` : ''}`
 
-        router.push(`/login?redirectTo=${encodeURIComponent(currentUrl)}`)
+        router.push(
+          `/login?redirectTo=${encodeURIComponent(currentUrl)}`
+        )
+
         return
       }
 
       /*
        * IMPORTANTE:
        *
-       * Esta llamada crea una orden pendiente.
-       * El precio definitivo debe ser validado en servidor
-       * mediante una API Route, Server Action o función RPC.
+       * No creamos la orden directamente desde el navegador.
        *
-       * Nunca debe confiarse en un precio enviado por el navegador.
+       * El servidor debe:
+       *
+       * 1. Validar al usuario.
+       * 2. Buscar nuevamente el producto.
+       * 3. Comprobar que está activo.
+       * 4. Comprobar el stock.
+       * 5. Obtener el precio real desde la base de datos.
+       * 6. Validar la referencia de afiliado.
+       * 7. Calcular el total.
+       * 8. Crear la orden.
+       * 9. Reservar/descontar inventario de manera atómica.
+       *
+       * Nunca confiar en `product.price` ni `total`
+       * enviados desde el navegador.
        */
 
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          buyer_id: user.id,
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           product_id: product.id,
-          total_amount: total,
+          quantity,
           affiliate_ref: refCode || null,
-          status: 'pending',
-        })
-        .select('id')
-        .single()
+        }),
+      })
 
-      if (orderError) {
-        throw orderError
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            'No fue posible crear la orden.'
+        )
       }
 
-      if (!order) {
-        throw new Error('No fue posible crear la orden.')
+      if (!result?.order_id) {
+        throw new Error(
+          'El servidor no devolvió el identificador de la orden.'
+        )
       }
 
       /*
-       * Aquí debe conectarse posteriormente el proveedor real
-       * de pagos:
+       * La orden todavía NO está pagada.
        *
-       * - Stripe
-       * - Binance Pay
-       * - USDT
-       * - Mercado Pago
-       * - Otro gateway
-       *
-       * El frontend NO debe marcar la orden como "completed".
+       * Por eso no debemos dirigir al usuario
+       * a una pantalla de "compra exitosa".
        */
 
-      router.push(`/checkout/success?order_id=${order.id}`)
+      router.push(
+        `/checkout/payment?order_id=${encodeURIComponent(
+          result.order_id
+        )}`
+      )
     } catch (error: unknown) {
-      console.error('Error al crear la orden:', error)
+      console.error(
+        'Error al crear la orden:',
+        error
+      )
 
       setCheckout({
         loading: false,
-        success: false,
         error:
           error instanceof Error
             ? error.message
@@ -276,7 +315,9 @@ function CheckoutContent() {
     return null
   }
 
-  const isAvailable = product.is_active && product.stock > 0
+  const isAvailable =
+    product.is_active &&
+    product.stock > 0
 
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:px-8">
@@ -285,7 +326,11 @@ function CheckoutContent() {
         {/* Encabezado */}
         <div className="mb-8">
           <Link
-            href={`/products/${product.id}${refCode ? `?ref=${encodeURIComponent(refCode)}` : ''}`}
+            href={`/products/${product.id}${
+              refCode
+                ? `?ref=${encodeURIComponent(refCode)}`
+                : ''
+            }`}
             className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
           >
             <span aria-hidden="true">←</span>
@@ -312,7 +357,9 @@ function CheckoutContent() {
             role="alert"
             className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-500"
           >
-            <strong className="font-bold">No se pudo completar la operación:</strong>{' '}
+            <strong className="font-bold">
+              No se pudo completar la operación:
+            </strong>{' '}
             {checkout.error}
           </div>
         )}
@@ -321,6 +368,7 @@ function CheckoutContent() {
           onSubmit={handleCheckout}
           className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]"
         >
+
           {/* Información principal */}
           <section className="space-y-6">
 
@@ -348,6 +396,7 @@ function CheckoutContent() {
                   <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Disponible
                   </span>
+
                   <span className="mt-1 block text-sm font-black text-primary">
                     {product.stock}
                   </span>
@@ -364,7 +413,9 @@ function CheckoutContent() {
               <div className="mt-5 flex items-center justify-between rounded-2xl border border-border bg-background p-2">
                 <button
                   type="button"
-                  onClick={() => handleQuantityChange(quantity - 1)}
+                  onClick={() =>
+                    handleQuantityChange(quantity - 1)
+                  }
                   disabled={quantity <= 1}
                   aria-label="Disminuir cantidad"
                   className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-lg font-bold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
@@ -378,8 +429,12 @@ function CheckoutContent() {
 
                 <button
                   type="button"
-                  onClick={() => handleQuantityChange(quantity + 1)}
-                  disabled={quantity >= product.stock}
+                  onClick={() =>
+                    handleQuantityChange(quantity + 1)
+                  }
+                  disabled={
+                    quantity >= product.stock
+                  }
                   aria-label="Aumentar cantidad"
                   className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-lg font-bold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                 >
@@ -406,8 +461,8 @@ function CheckoutContent() {
                     </h2>
 
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                      Esta compra conserva la referencia de afiliación asociada
-                      a tu enlace.
+                      Esta referencia será validada por el servidor
+                      antes de asociarla a la orden.
                     </p>
 
                     <code className="mt-3 inline-block rounded-lg border border-border bg-background px-3 py-2 font-mono text-[11px] text-foreground">
@@ -418,15 +473,17 @@ function CheckoutContent() {
               </div>
             )}
 
-            {/* Método de pago */}
+            {/* Pago */}
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="text-base font-black text-foreground">
                     Método de pago
                   </h2>
+
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Selecciona el método disponible para completar la operación.
+                    Selecciona el método disponible para completar
+                    la operación.
                   </p>
                 </div>
 
@@ -447,7 +504,8 @@ function CheckoutContent() {
                     </p>
 
                     <p className="text-xs text-muted-foreground">
-                      La integración con la pasarela de pago se conectará en la siguiente fase.
+                      La integración con la pasarela de pago se
+                      conectará en la siguiente fase.
                     </p>
                   </div>
                 </div>
@@ -458,11 +516,13 @@ function CheckoutContent() {
           {/* Resumen */}
           <aside className="lg:sticky lg:top-6 lg:h-fit">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-xl">
+
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Resumen de compra
               </span>
 
               <div className="mt-5 space-y-4">
+
                 <div className="flex items-start justify-between gap-4">
                   <span className="text-sm text-muted-foreground">
                     {product.title}
@@ -487,7 +547,7 @@ function CheckoutContent() {
                   <div className="flex items-end justify-between gap-4">
                     <div>
                       <span className="text-xs font-semibold text-muted-foreground">
-                        Total
+                        Total estimado
                       </span>
 
                       <p className="mt-1 text-3xl font-black tracking-tight text-foreground">
@@ -519,26 +579,33 @@ function CheckoutContent() {
               </button>
 
               <div className="mt-5 space-y-3 border-t border-border pt-5">
+
                 <div className="flex gap-3">
                   <span className="text-emerald-500">✓</span>
+
                   <p className="text-[11px] leading-5 text-muted-foreground">
-                    Tu orden será registrada antes de iniciar el proceso de pago.
+                    El precio final será validado en el servidor.
                   </p>
                 </div>
 
                 <div className="flex gap-3">
                   <span className="text-emerald-500">✓</span>
+
                   <p className="text-[11px] leading-5 text-muted-foreground">
-                    El precio definitivo debe ser validado en el servidor.
+                    La disponibilidad será comprobada nuevamente
+                    antes de crear la orden.
                   </p>
                 </div>
 
                 <div className="flex gap-3">
                   <span className="text-emerald-500">✓</span>
+
                   <p className="text-[11px] leading-5 text-muted-foreground">
-                    Nunca compartiremos tus credenciales de acceso con terceros.
+                    El estado de la orden cambiará a completada
+                    únicamente después de confirmar el pago.
                   </p>
                 </div>
+
               </div>
             </div>
           </aside>
@@ -565,4 +632,3 @@ export default function CheckoutPage() {
     </Suspense>
   )
 }
-```
