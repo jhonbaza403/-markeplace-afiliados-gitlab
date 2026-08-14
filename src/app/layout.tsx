@@ -1,7 +1,20 @@
 // ==========================================================
 // ARCHIVO: src/app/layout.tsx
 // CREDI MARKETPLACE
-// Root Layout — Next.js 16.3 / React 19 / Node.js 24
+//
+// Root Layout
+// Next.js 16.3
+// React 19
+// Node.js 24
+//
+// Arquitectura:
+// - Server Component
+// - App Router
+// - SEO global
+// - Accesibilidad
+// - Auth global
+// - Región global
+// - Tipografía optimizada
 // ==========================================================
 
 import type { Metadata, Viewport } from 'next';
@@ -14,14 +27,15 @@ import { RegionProvider } from '@/context/RegionContext';
 import Navbar from '@/components/Navbar';
 
 // ==========================================================
-// 1. TIPOGRAFÍA
+// 1. CONFIGURACIÓN DE FUENTE
 // ==========================================================
 //
-// next/font descarga y sirve la fuente durante el build,
-// evitando solicitudes externas del navegador.
-//
-// La variable --font-inter puede ser utilizada desde Tailwind
-// y desde CSS.
+// next/font permite:
+// - Servir la fuente desde Next.js.
+// - Evitar requests innecesarios del navegador.
+// - Mejorar CLS.
+// - Controlar el fallback.
+// - Exponer la variable CSS --font-inter.
 //
 // ==========================================================
 
@@ -41,21 +55,26 @@ const inter = Inter({
 });
 
 // ==========================================================
-// 2. VIEWPORT
+// 2. CONFIGURACIÓN DEL VIEWPORT
 // ==========================================================
 //
 // IMPORTANTE:
-// No usamos maximumScale=1.
 //
-// Bloquear el zoom perjudica la accesibilidad, especialmente
-// en dispositivos móviles.
+// No se bloquea el zoom del usuario.
+//
+// Esto preserva:
+// - Accesibilidad.
+// - Usabilidad móvil.
+// - WCAG.
 //
 // ==========================================================
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+
   colorScheme: 'light dark',
+
   themeColor: [
     {
       media: '(prefers-color-scheme: light)',
@@ -72,39 +91,53 @@ export const viewport: Viewport = {
 // 3. METADATA GLOBAL
 // ==========================================================
 //
-// Esta metadata se hereda por todas las rutas del App Router.
-// Las páginas individuales pueden sobrescribir title,
-// description, Open Graph, etc.
+// Esta metadata se hereda automáticamente por todas las
+// páginas del App Router.
+//
+// Las páginas específicas pueden sobrescribir:
+// - title
+// - description
+// - canonical
+// - Open Graph
+// - Twitter
+// - robots
 //
 // ==========================================================
 
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  'http://localhost:3000';
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
-  ),
+  metadataBase: new URL(APP_URL),
 
   applicationName: 'Credi Marketplace',
 
   title: {
-    default: 'Credi Marketplace | Plataforma Comercial Global',
+    default:
+      'Credi Marketplace | Plataforma Comercial Global',
     template: '%s | Credi Marketplace',
   },
 
   description:
-    'Credi Marketplace es un ecosistema digital para comprar, vender y conectar empresas, proveedores, profesionales y clientes en mercados B2C y B2B.',
+    'Credi Marketplace es un ecosistema digital para comprar, vender y conectar compradores, vendedores, profesionales, empresas y proveedores mediante operaciones B2C y B2B.',
 
   keywords: [
     'Credi Marketplace',
     'marketplace',
+    'marketplace global',
     'marketplace B2B',
     'marketplace B2C',
     'comercio electrónico',
-    'compras',
-    'ventas',
+    'ecommerce',
+    'compras online',
+    'ventas online',
     'proveedores',
     'productos',
     'servicios',
-    'afiliados',
+    'empresas',
+    'comercio mayorista',
+    'comercio minorista',
   ],
 
   authors: [
@@ -114,9 +147,12 @@ export const metadata: Metadata = {
   ],
 
   creator: 'Credi Marketplace',
+
   publisher: 'Credi Marketplace',
 
   category: 'ecommerce',
+
+  referrer: 'strict-origin-when-cross-origin',
 
   alternates: {
     canonical: '/',
@@ -125,6 +161,7 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+
     googleBot: {
       index: true,
       follow: true,
@@ -136,19 +173,53 @@ export const metadata: Metadata = {
 
   openGraph: {
     type: 'website',
+
     locale: 'es_VE',
+
     siteName: 'Credi Marketplace',
-    title: 'Credi Marketplace | Plataforma Comercial Global',
+
+    title:
+      'Credi Marketplace | Plataforma Comercial Global',
+
     description:
-      'Compra, vende y conecta con proveedores, empresas, profesionales y clientes en un ecosistema comercial digital.',
+      'Compra, vende y conecta con proveedores, empresas, profesionales y clientes dentro de un ecosistema comercial digital B2B y B2C.',
+
     url: '/',
+
+    images: [
+      {
+        url: '/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Credi Marketplace',
+      },
+    ],
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: 'Credi Marketplace | Plataforma Comercial Global',
+
+    title:
+      'Credi Marketplace | Plataforma Comercial Global',
+
     description:
       'El ecosistema digital para comprar, vender y hacer crecer tu negocio.',
+
+    images: ['/og-image.jpg'],
+  },
+
+  icons: {
+    icon: [
+      {
+        url: '/favicon.ico',
+      },
+    ],
+
+    apple: [
+      {
+        url: '/apple-touch-icon.png',
+      },
+    ],
   },
 
   formatDetection: {
@@ -160,6 +231,17 @@ export const metadata: Metadata = {
 
 // ==========================================================
 // 4. ROOT LAYOUT
+// ==========================================================
+//
+// Este componente permanece como Server Component.
+//
+// Los providers pueden ser Client Components internamente
+// sin necesidad de convertir este archivo en:
+//
+// 'use client'
+//
+// Esto permite conservar las ventajas del App Router.
+//
 // ==========================================================
 
 export default function RootLayout({
@@ -178,15 +260,16 @@ export default function RootLayout({
         <AuthProvider>
           <RegionProvider>
             <div className="flex min-h-screen flex-col">
-              {/* ==========================================
-                  NAVEGACIÓN PRINCIPAL
-                 ========================================== */}
+
+              {/* ==================================================
+                  NAVEGACIÓN GLOBAL
+                 ================================================== */}
 
               <Navbar />
 
-              {/* ==========================================
+              {/* ==================================================
                   CONTENIDO PRINCIPAL
-                 ========================================== */}
+                 ================================================== */}
 
               <main
                 id="main-content"
@@ -194,6 +277,7 @@ export default function RootLayout({
               >
                 {children}
               </main>
+
             </div>
           </RegionProvider>
         </AuthProvider>
