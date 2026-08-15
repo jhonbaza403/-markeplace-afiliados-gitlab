@@ -1,71 +1,123 @@
-import {
-  isUUID,
-  normalizeString,
-} from './common'
+import { z } from 'zod'
 
-import {
-  validateOrderItems,
-  type ValidatedOrderItem,
-} from './order'
+/**
+ * ============================================================
+ * CREDI MARKETPLACE
+ * CHECKOUT SCHEMA
+ * src/lib/validation/checkout.ts
+ * ============================================================
+ *
+ * El cliente únicamente puede declarar:
+ *
+ * - product_id
+ * - quantity
+ * - affiliate_ref
+ * - region
+ *
+ * Nunca se considera confiable:
+ *
+ * - price
+ * - subtotal
+ * - totalAmount
+ * - commission
+ * - sellerAmount
+ * - customerId
+ *
+ * Los valores financieros definitivos se obtienen y calculan
+ * en servidor/PostgreSQL.
+ * ============================================================
+ */
 
-export interface CheckoutValidationSuccess {
-  success: true
-  items: ValidatedOrderItem[]
-  region: string
-  affiliateRef: string | null
-}
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-export interface CheckoutValidationFailure {
-  success: false
-  error: string
-}
+const productIdSchema = z
+  .string()
+  .trim()
+  .regex(UUID_REGEX, 'El identificador del producto no es válido.')
 
-export type CheckoutValidationResult =
-  | CheckoutValidationSuccess
-  | CheckoutValidationFailure
+const quantitySchema = z
+  .number({
+    error: 'La cantidad debe ser un número.',
+  })
+  .int('La cantidad debe ser un número entero.')
+  .min(1, 'La cantidad mínima es 1.')
+  .max(1000, 'La cantidad máxima permitida es 1000.')
 
-export function validateCheckoutPayload(
-  body: unknown,
-): CheckoutValidationResult {
-  if (!body || typeof body !== 'object') {
-    return {
-      success: false,
-      error: 'Solicitud de checkout inválida.',
+export const checkoutItemSchema = z
+  .object({
+    product_id: productIdSchema,
+    quantity: quantitySchema,
+  })
+  .strict()
+
+export const checkoutSchema = z
+  .object({
+    items: z
+      .array(checkoutItemSchema)
+      .min(1, 'El carrito no puede estar vacío.')
+      .max(
+        100,
+        'El checkout no puede contener más de 100 productos.',
+      ),
+
+    affiliate_ref: z
+      .string()
+      .trim()
+      .min(1)
+      .max(128)
+      .optional()
+      .nullable(),
+
+    region: z
+      .string()
+      .trim()
+      .min(2)
+      .max(32)
+      .optional()
+      .default('GLOBAL'),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    const normalizedIds = data.items.map((item) =>
+      item.product_id.toLowerCase(),
+    )
+
+    const uniqueIds = new Set(normalizedIds)
+
+    if (uniqueIds.size !== normalizedIds.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['items'],
+        message:
+          'No se permiten productos duplicados en el checkout.',
+      })
     }
-  }
+  })
 
-  const data = body as Record<string, unknown>
+export type CheckoutInput = z.infer<typeof checkoutSchema>
 
-  const itemsResult =
-    validateOrderItems(data.items)
+export type CheckoutItemInput = z.infer<
+  typeof checkoutItemSchema
+>
 
-  if (!itemsResult.success) {
-    return itemsResult
-  }
-
-  const region =
-    normalizeString(data.region) ?? 'GLOBAL'
-
-  if (region.length > 50) {
-    return {
-      success: false,
-      error: 'La región indicada no es válida.',
-    }
-  }
-
-  const affiliateRef =
-    normalizeString(data.affiliate_ref)
-
-  return {
-    success: true,
-    items: itemsResult.items,
-    region,
-    affiliateRef,
-  }
+/**
+ * Validación sin lanzar excepción.
+ */
+export function validateCheckout(
+  payload: unknown,
+) {
+  return checkoutSchema.safeParse(payload)
 }
 
-export function validateCustomerId(
-  value: unknown,
-): boolean {
-  return isUUID(value)
+/**
+ * Parseo estricto.
+ *
+ * Utilizar solamente cuando la capa superior
+ * quiera manejar la excepción de Zod.
+ */
+export function parseCheckout(
+  payload: unknown,
+): CheckoutInput {
+  return checkoutSchema.parse(payload)
 }
