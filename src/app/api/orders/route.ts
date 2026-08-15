@@ -1,131 +1,136 @@
-# `src/app/api/orders/route.ts`
-
-```tsx
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 
-/**
- * POST /api/orders
- *
- * Crea una orden pendiente de pago.
- *
- * Principios de seguridad:
- *
- * - El usuario se obtiene desde Supabase Auth.
- * - Nunca se confía en el precio enviado por el cliente.
- * - El producto se vuelve a consultar en servidor.
- * - El stock se valida en servidor.
- * - La referencia de afiliado se valida antes de almacenarla.
- * - La orden nace como "pending".
- * - El pago NO se considera completado desde esta ruta.
- * - La operación de inventario debe ser atómica mediante RPC.
- */
-
 export const runtime = 'nodejs'
-
 export const dynamic = 'force-dynamic'
 
-const MAX_QUANTITY = 100
+/**
+ * ============================================================
+ * CREDI MARKETPLACE
+ * API: POST /api/checkout
+ *
+ * Responsabilidad:
+ *   Preparar y crear una orden pendiente multi-producto.
+ *
+ * Seguridad:
+ *   - Usuario obtenido desde Supabase Auth.
+ *   - Nunca confiar en customerId del cliente.
+ *   - Nunca confiar en price del cliente.
+ *   - Nunca confiar en totalAmount del cliente.
+ *   - Nunca confiar en commissionAmount del cliente.
+ *   - Precios calculados exclusivamente por PostgreSQL.
+ *   - Inventario validado/bloqueado por RPC.
+ *   - Creación transaccional mediante:
+ *
+ *       create_pending_order_batch
+ *
+ * El pago NO se confirma aquí.
+ * ============================================================
+ */
 
-type CreateOrderPayload = {
-  product_id?: unknown
-  quantity?: unknown
-  affiliate_ref?: unknown
-}
+const MAX_ITEMS = 50
+const MAX_QUANTITY_PER_ITEM = 100
 
-type RpcOrderResult = {
-  order_id: string
-  total_amount: number
-}
+const checkoutSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        product_id: z
+          .string()
+          .uuid('Identificador de producto inválido.'),
+
+        quantity: z
+          .number()
+          .int()
+          .min(1)
+          .max(MAX_QUANTITY_PER_ITEM),
+      }),
+    )
+    .min(1, 'El carrito no puede estar vacío.')
+    .max(MAX_ITEMS, `No puedes procesar más de ${MAX_ITEMS} productos.`),
+
+  affiliate_ref: z
+    .string()
+    .trim()
+    .max(128)
+    .optional()
+    .nullable(),
+
+  region: z
+    .string()
+    .trim()
+    .min(1)
+    .max(32)
+    .optional()
+    .default('GLOBAL'),
+})
+
+type CheckoutPayload = z.infer<typeof checkoutSchema>
 
 function jsonError(
   message: string,
   status: number,
-  code?: string
+  code: string,
 ) {
   return NextResponse.json(
     {
       success: false,
       error: message,
-      ...(code ? { code } : {}),
+      code,
     },
-    { status }
+    {
+      status,
+      headers: {
+        'Cache-Control': 'no-store',
+      },
+    },
   )
 }
 
-function isValidUUID(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value
-  )
-}
+function getRequestId(request: Request): string {
+  const suppliedId = request.headers.get('x-request-id')
 
-function normalizeAffiliateRef(
-  value: unknown
-): string | null {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const normalized = value.trim()
-
-  if (!normalized) {
-    return null
-  }
-
-  /*
-   * Evitamos referencias arbitrariamente grandes.
-   * La validación definitiva del afiliado ocurre
-   * nuevamente en PostgreSQL.
-   */
-  if (normalized.length > 128) {
-    return null
-  }
-
-  return normalized
-}
-
-function parseQuantity(
-  value: unknown
-): number | null {
   if (
-    typeof value !== 'number' ||
-    !Number.isFinite(value) ||
-    !Number.isInteger(value)
+    suppliedId &&
+    suppliedId.length <= 128 &&
+    /^[a-zA-Z0-9._:-]+$/.test(suppliedId)
   ) {
-    return null
+    return suppliedId
   }
 
-  if (value < 1 || value > MAX_QUANTITY) {
-    return null
-  }
-
-  return value
+  return crypto.randomUUID()
 }
 
 export async function POST(request: Request) {
-  const requestId = crypto.randomUUID()
+  const requestId = getRequestId(request)
 
   try {
     /*
      * ---------------------------------------------------------
-     * 1. Validar Content-Type
+     * 1. Content-Type
      * ---------------------------------------------------------
      */
 
     const contentType =
-      request.headers.get('content-type') || ''
+      request.headers.get('content-type') ?? ''
 
-    if (!contentType.includes('application/json')) {
+    if (!contentType.toLowerCase().includes('application/json')) {
       return jsonError(
         'La solicitud debe utilizar Content-Type: application/json.',
         415,
-        'UNSUPPORTED_MEDIA_TYPE'
+        'UNSUPPORTED_MEDIA_TYPE',
       )
     }
 
     /*
      * ---------------------------------------------------------
-     * 2. Obtener usuario autenticado
+     * 2. Autenticación
+     * ---------------------------------------------------------
+     *
+     * El customerId NO viene del frontend.
+     *
+     * La identidad verdadera es auth.uid().
      * ---------------------------------------------------------
      */
 
@@ -138,386 +143,358 @@ export async function POST(request: Request) {
 
     if (authError) {
       console.error(
-        `[orders:${requestId}] Auth error:`,
-        authError
+        `[checkout:${requestId}] Authentication error`,
+        authError,
       )
 
       return jsonError(
-        'No fue posible verificar la sesión.',
+        'No fue posible verificar tu sesión.',
         401,
-        'AUTHENTICATION_ERROR'
+        'AUTHENTICATION_ERROR',
       )
     }
 
     if (!user) {
       return jsonError(
-        'Debes iniciar sesión para realizar una compra.',
+        'Debes iniciar sesión para continuar con el checkout.',
         401,
-        'UNAUTHENTICATED'
+        'UNAUTHENTICATED',
       )
     }
 
     /*
      * ---------------------------------------------------------
-     * 3. Leer y validar body
+     * 3. Parsear JSON
      * ---------------------------------------------------------
      */
 
-    let body: CreateOrderPayload
+    let rawBody: unknown
 
     try {
-      body = await request.json()
+      rawBody = await request.json()
     } catch {
       return jsonError(
         'El cuerpo de la solicitud no contiene JSON válido.',
         400,
-        'INVALID_JSON'
+        'INVALID_JSON',
       )
     }
-
-    const productId =
-      typeof body.product_id === 'string'
-        ? body.product_id.trim()
-        : ''
-
-    if (!productId || !isValidUUID(productId)) {
-      return jsonError(
-        'El identificador del producto no es válido.',
-        400,
-        'INVALID_PRODUCT_ID'
-      )
-    }
-
-    const quantity = parseQuantity(body.quantity)
-
-    if (quantity === null) {
-      return jsonError(
-        `La cantidad debe ser un número entero entre 1 y ${MAX_QUANTITY}.`,
-        400,
-        'INVALID_QUANTITY'
-      )
-    }
-
-    const affiliateRef =
-      normalizeAffiliateRef(body.affiliate_ref)
 
     /*
      * ---------------------------------------------------------
-     * 4. Verificar producto en servidor
+     * 4. Validación estricta
+     * ---------------------------------------------------------
+     */
+
+    const parsed = checkoutSchema.safeParse(rawBody)
+
+    if (!parsed.success) {
+      return jsonError(
+        'Los datos del checkout no son válidos.',
+        400,
+        'INVALID_CHECKOUT_DATA',
+      )
+    }
+
+    const payload: CheckoutPayload = parsed.data
+
+    /*
+     * ---------------------------------------------------------
+     * 5. Normalizar productos duplicados
+     * ---------------------------------------------------------
+     *
+     * Si el frontend accidentalmente envía:
+     *
+     * product A × 2
+     * product A × 3
+     *
+     * lo convertimos en:
+     *
+     * product A × 5
+     *
+     * antes de enviarlo a PostgreSQL.
+     * ---------------------------------------------------------
+     */
+
+    const quantityByProduct = new Map<string, number>()
+
+    for (const item of payload.items) {
+      const current =
+        quantityByProduct.get(item.product_id) ?? 0
+
+      const nextQuantity =
+        current + item.quantity
+
+      if (nextQuantity > MAX_QUANTITY_PER_ITEM) {
+        return jsonError(
+          `La cantidad máxima por producto es ${MAX_QUANTITY_PER_ITEM}.`,
+          400,
+          'QUANTITY_LIMIT_EXCEEDED',
+        )
+      }
+
+      quantityByProduct.set(
+        item.product_id,
+        nextQuantity,
+      )
+    }
+
+    const normalizedItems = Array.from(
+      quantityByProduct.entries(),
+    )
+      .map(([product_id, quantity]) => ({
+        product_id,
+        quantity,
+      }))
+      /*
+       * Orden determinista.
+       *
+       * Esto ayuda a que PostgreSQL adquiera bloqueos
+       * en un orden consistente y reduce el riesgo de
+       * deadlocks cuando varios compradores intentan
+       * adquirir los mismos productos.
+       */
+      .sort((a, b) =>
+        a.product_id.localeCompare(b.product_id),
+      )
+
+    /*
+     * ---------------------------------------------------------
+     * 6. Affiliate reference
+     * ---------------------------------------------------------
+     */
+
+    const affiliateRef =
+      payload.affiliate_ref?.trim() || null
+
+    /*
+     * ---------------------------------------------------------
+     * 7. RPC transaccional
      * ---------------------------------------------------------
      *
      * IMPORTANTE:
      *
-     * Nunca usamos product.price enviado desde el navegador.
+     * NO enviamos:
+     *
+     *   customerId
+     *   price
+     *   totalAmount
+     *   commission
+     *   sellerAmount
+     *
+     * porque ninguno de esos valores debe proceder
+     * del navegador.
      */
 
-    const {
-      data: product,
-      error: productError,
-    } = await supabase
-      .from('products')
-      .select(
-        'id, title, price, stock, is_active, store_id'
+    const { data: rpcData, error: rpcError } =
+      await supabase.rpc(
+        'create_pending_order_batch',
+        {
+          p_buyer_id: user.id,
+
+          p_items: normalizedItems,
+
+          p_affiliate_ref: affiliateRef,
+
+          p_region: payload.region,
+        },
       )
-      .eq('id', productId)
-      .maybeSingle()
-
-    if (productError) {
-      console.error(
-        `[orders:${requestId}] Product query error:`,
-        productError
-      )
-
-      return jsonError(
-        'No fue posible verificar el producto.',
-        500,
-        'PRODUCT_LOOKUP_FAILED'
-      )
-    }
-
-    if (!product) {
-      return jsonError(
-        'El producto solicitado no existe.',
-        404,
-        'PRODUCT_NOT_FOUND'
-      )
-    }
-
-    if (!product.is_active) {
-      return jsonError(
-        'El producto ya no está disponible.',
-        409,
-        'PRODUCT_INACTIVE'
-      )
-    }
-
-    if (
-      typeof product.stock !== 'number' ||
-      product.stock <= 0
-    ) {
-      return jsonError(
-        'El producto se encuentra agotado.',
-        409,
-        'OUT_OF_STOCK'
-      )
-    }
-
-    if (quantity > product.stock) {
-      return jsonError(
-        `La cantidad solicitada supera el inventario disponible. Stock actual: ${product.stock}.`,
-        409,
-        'INSUFFICIENT_STOCK'
-      )
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * 5. Validar precio almacenado
-     * ---------------------------------------------------------
-     */
-
-    const unitPrice = Number(product.price)
-
-    if (
-      !Number.isFinite(unitPrice) ||
-      unitPrice < 0
-    ) {
-      console.error(
-        `[orders:${requestId}] Invalid product price for ${product.id}`
-      )
-
-      return jsonError(
-        'El producto tiene un precio inválido.',
-        500,
-        'INVALID_PRODUCT_PRICE'
-      )
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * 6. Validar referencia de afiliado
-     * ---------------------------------------------------------
-     *
-     * La referencia se trata como dato no confiable.
-     *
-     * La validación definitiva puede hacerse dentro de la RPC
-     * contra la tabla correspondiente de afiliados.
-     */
-
-    let validatedAffiliateRef: string | null = null
-
-    if (affiliateRef) {
-      /*
-       * Si tu sistema utiliza UUID como referencia de afiliado,
-       * validamos el formato aquí.
-       *
-       * Si posteriormente utilizas códigos tipo:
-       * "JOHNBAZA10"
-       *
-       * esta condición debe sustituirse por la consulta
-       * correspondiente a tu tabla de afiliados.
-       */
-      if (isValidUUID(affiliateRef)) {
-        validatedAffiliateRef = affiliateRef
-      } else {
-        /*
-         * Por seguridad no rechazamos automáticamente códigos
-         * alfanuméricos legítimos.
-         *
-         * La RPC deberá verificar que el código realmente existe.
-         */
-        validatedAffiliateRef = affiliateRef
-      }
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * 7. Calcular total únicamente como comprobación
-     * ---------------------------------------------------------
-     *
-     * Este valor NO constituye la fuente de verdad.
-     *
-     * PostgreSQL debe volver a calcular:
-     *
-     * unit_price × quantity
-     */
-
-    const expectedTotal = Number(
-      (unitPrice * quantity).toFixed(2)
-    )
-
-    if (!Number.isFinite(expectedTotal)) {
-      return jsonError(
-        'No fue posible calcular el total de la orden.',
-        500,
-        'INVALID_ORDER_TOTAL'
-      )
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * 8. Crear orden mediante RPC ATÓMICA
-     * ---------------------------------------------------------
-     *
-     * La función PostgreSQL recomendada:
-     *
-     * create_pending_order(
-     *   p_buyer_id,
-     *   p_product_id,
-     *   p_quantity,
-     *   p_affiliate_ref
-     * )
-     *
-     * Debe:
-     *
-     * 1. bloquear la fila del producto FOR UPDATE;
-     * 2. volver a comprobar is_active;
-     * 3. volver a comprobar stock;
-     * 4. obtener el precio real;
-     * 5. calcular el total;
-     * 6. validar afiliado;
-     * 7. insertar la orden;
-     * 8. descontar/reservar inventario;
-     * 9. hacer COMMIT como una única operación.
-     *
-     * Esto evita race conditions.
-     */
-
-    const {
-      data: rpcData,
-      error: rpcError,
-    } = await supabase.rpc(
-      'create_pending_order',
-      {
-        p_buyer_id: user.id,
-        p_product_id: product.id,
-        p_quantity: quantity,
-        p_affiliate_ref: validatedAffiliateRef,
-      }
-    )
 
     if (rpcError) {
       console.error(
-        `[orders:${requestId}] RPC create_pending_order error:`,
-        rpcError
+        `[checkout:${requestId}] RPC error`,
+        rpcError,
       )
 
-      /*
-       * No exponemos detalles internos de PostgreSQL
-       * al navegador.
-       */
-
       const message =
-        rpcError.message?.toLowerCase() || ''
+        rpcError.message?.toLowerCase() ?? ''
+
+      /*
+       * -------------------------------------------------------
+       * Inventario
+       * -------------------------------------------------------
+       */
 
       if (
         message.includes('insufficient_stock') ||
-        message.includes('stock')
+        message.includes('stock_changed') ||
+        message.includes('out_of_stock')
       ) {
         return jsonError(
-          'El inventario disponible cambió. Actualiza la página e inténtalo nuevamente.',
+          'Uno o más productos ya no tienen inventario suficiente. Actualiza tu carrito e inténtalo nuevamente.',
           409,
-          'STOCK_CHANGED'
+          'STOCK_CHANGED',
         )
       }
 
+      /*
+       * -------------------------------------------------------
+       * Producto
+       * -------------------------------------------------------
+       */
+
       if (
-        message.includes('inactive') ||
-        message.includes('product_not_available')
+        message.includes('product_not_found') ||
+        message.includes('product_inactive')
       ) {
         return jsonError(
-          'El producto ya no está disponible.',
+          'Uno de los productos seleccionados ya no está disponible.',
           409,
-          'PRODUCT_NOT_AVAILABLE'
+          'PRODUCT_NOT_AVAILABLE',
         )
       }
 
+      /*
+       * -------------------------------------------------------
+       * Afiliado
+       * -------------------------------------------------------
+       */
+
       if (
-        message.includes('affiliate') ||
-        message.includes('referral')
+        message.includes('invalid_affiliate')
       ) {
         return jsonError(
           'La referencia de afiliado no es válida.',
           400,
-          'INVALID_AFFILIATE'
+          'INVALID_AFFILIATE',
         )
       }
 
+      /*
+       * -------------------------------------------------------
+       * Autenticación
+       * -------------------------------------------------------
+       */
+
+      if (
+        message.includes('unauthenticated') ||
+        message.includes('buyer_mismatch')
+      ) {
+        return jsonError(
+          'La sesión no es válida para realizar esta operación.',
+          401,
+          'INVALID_SESSION',
+        )
+      }
+
+      /*
+       * -------------------------------------------------------
+       * Payload
+       * -------------------------------------------------------
+       */
+
+      if (
+        message.includes('invalid_payload') ||
+        message.includes('invalid_quantity') ||
+        message.includes('empty_order')
+      ) {
+        return jsonError(
+          'Los datos de la orden no son válidos.',
+          400,
+          'INVALID_ORDER',
+        )
+      }
+
+      /*
+       * -------------------------------------------------------
+       * Error genérico
+       * -------------------------------------------------------
+       */
+
       return jsonError(
-        'No fue posible crear la orden.',
+        'No fue posible crear la orden. Inténtalo nuevamente.',
         500,
-        'ORDER_CREATION_FAILED'
+        'ORDER_CREATION_FAILED',
       )
     }
 
     /*
      * ---------------------------------------------------------
-     * 9. Normalizar respuesta RPC
+     * 8. Normalizar respuesta RPC
      * ---------------------------------------------------------
      */
 
-    const rawOrder = Array.isArray(rpcData)
-      ? rpcData[0]
-      : rpcData
-
-    const order =
-      rawOrder as RpcOrderResult | null
+    const result =
+      Array.isArray(rpcData)
+        ? rpcData[0]
+        : rpcData
 
     if (
-      !order ||
-      typeof order.order_id !== 'string'
+      !result ||
+      typeof result !== 'object' ||
+      typeof result.order_id !== 'string'
     ) {
       console.error(
-        `[orders:${requestId}] Invalid RPC response:`,
-        rpcData
+        `[checkout:${requestId}] Invalid RPC response`,
+        rpcData,
       )
 
       return jsonError(
-        'La orden fue procesada de forma incompleta. Contacta al soporte.',
+        'La orden no pudo ser confirmada correctamente. Contacta al soporte.',
         500,
-        'INVALID_ORDER_RESPONSE'
+        'INVALID_ORDER_RESPONSE',
       )
     }
 
     /*
      * ---------------------------------------------------------
-     * 10. Respuesta pública
+     * 9. Respuesta pública
      * ---------------------------------------------------------
      *
-     * No devolvemos información sensible.
+     * El servidor devuelve el total calculado por PostgreSQL.
+     *
+     * Nunca utilizamos un total enviado por el cliente.
      */
 
+    const responseBody = {
+      success: true,
+
+      orderId: result.order_id,
+
+      status:
+        typeof result.status === 'string'
+          ? result.status
+          : 'pending',
+
+      totalAmount:
+        typeof result.total_amount === 'number'
+          ? result.total_amount
+          : Number(result.total_amount ?? 0),
+
+      currency:
+        typeof result.currency === 'string'
+          ? result.currency
+          : 'USD',
+
+      itemCount:
+        typeof result.item_count === 'number'
+          ? result.item_count
+          : normalizedItems.length,
+
+      message:
+        'Orden creada correctamente. Continúa con el proceso de pago.',
+    }
+
     return NextResponse.json(
-      {
-        success: true,
-        order_id: order.order_id,
-        status: 'pending',
-        total_amount:
-          typeof order.total_amount === 'number'
-            ? order.total_amount
-            : expectedTotal,
-        currency: 'USD',
-        message:
-          'Orden creada correctamente. Continúa con el proceso de pago.',
-      },
+      responseBody,
       {
         status: 201,
         headers: {
           'Cache-Control': 'no-store',
+          'X-Request-ID': requestId,
         },
-      }
+      },
     )
   } catch (error: unknown) {
     console.error(
-      `[orders:${requestId}] Unexpected error:`,
-      error
+      `[checkout:${requestId}] Unexpected error`,
+      error,
     )
 
     return jsonError(
-      'Ocurrió un error inesperado al procesar la orden.',
+      'Ocurrió un error inesperado al procesar el checkout.',
       500,
-      'INTERNAL_SERVER_ERROR'
+      'INTERNAL_SERVER_ERROR',
     )
   }
 }
-```
