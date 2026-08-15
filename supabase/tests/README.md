@@ -1,52 +1,99 @@
-# Credi Marketplace — Database Test Suite
 
-Suite de pruebas de integridad, seguridad, concurrencia y lógica
-transaccional de la plataforma Credi Marketplace.
+---
 
-## Arquitectura probada
+# `supabase/tests/001_schema.sql`
 
-La suite cubre:
+```sql
+-- ============================================================
+-- CREDI MARKETPLACE
+-- TEST 001 — SCHEMA
+-- ============================================================
 
-- esquema PostgreSQL;
-- órdenes;
-- checkout;
-- inventario;
-- concurrencia;
-- idempotencia;
-- afiliados;
-- comisiones;
-- pagos;
-- webhooks;
-- máquina de estados;
-- RLS;
-- seguridad;
-- auditoría.
+BEGIN;
 
-## Requisitos
+DO $$
+DECLARE
+    table_name_required TEXT;
+BEGIN
+    FOREACH table_name_required IN ARRAY ARRAY[
+        'profiles',
+        'stores',
+        'categories',
+        'products',
+        'orders',
+        'order_items',
+        'inventory',
+        'idempotency_keys',
+        'affiliates',
+        'payments',
+        'webhook_events',
+        'order_status_history',
+        'notifications',
+        'companies',
+        'jobs',
+        'professionals',
+        'services'
+    ]
+    LOOP
+        IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_name = table_name_required
+        ) THEN
+            RAISE EXCEPTION
+                'FALLO: tabla public.% inexistente',
+                table_name_required;
+        END IF;
+    END LOOP;
+END
+$$;
 
-Antes de ejecutar la suite deben estar aplicadas todas las migraciones:
+-- Productos: integridad económica
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM products
+        WHERE price < 0
+           OR stock < 0
+    ) THEN
+        RAISE EXCEPTION
+            'FALLO: productos con precio o stock inválido';
+    END IF;
+END
+$$;
 
-```text
-001_extensions.sql
-002_core_schema.sql
-003_orders.sql
-004_order_items.sql
-005_inventory.sql
-006_idempotency.sql
-007_affiliates.sql
-008_payments.sql
-009_webhooks.sql
-010_order_state_machine.sql
-011_functions.sql
-012_create_pending_order_batch.sql
-013_rls.sql
-014_indexes.sql
-015_triggers.sql
-016_audit.sql
-017_security.sql
-018_cart.sql
-019_b2b.sql
-020_affiliate_tracking.sql
-021_notifications.sql
-022_jobs.sql
-023_services.sql
+-- Categorías sin nombres vacíos
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM categories
+        WHERE trim(name) = ''
+    ) THEN
+        RAISE EXCEPTION
+            'FALLO: categoría con nombre vacío';
+    END IF;
+END
+$$;
+
+-- Productos con slug duplicado
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT slug
+        FROM products
+        WHERE slug IS NOT NULL
+        GROUP BY slug
+        HAVING COUNT(*) > 1
+    ) THEN
+        RAISE EXCEPTION
+            'FALLO: existen productos con slug duplicado';
+    END IF;
+END
+$$;
+
+RAISE NOTICE 'TEST 001 — SCHEMA: PASS';
+
+ROLLBACK;
