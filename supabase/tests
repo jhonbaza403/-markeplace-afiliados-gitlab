@@ -1,0 +1,133 @@
+````markdown
+# Credi Marketplace — Tests de Base de Datos
+
+Esta carpeta contiene las pruebas de integridad y seguridad de la
+capa PostgreSQL/Supabase.
+
+## Estructura
+
+```text
+supabase/
+└── tests/
+    ├── README.md
+    ├── 001_schema.sql
+    ├── 002_orders.sql
+    ├── 003_inventory_concurrency.sql
+    ├── 004_idempotency.sql
+    ├── 005_affiliates.sql
+    ├── 006_payments.sql
+    ├── 007_webhooks.sql
+    ├── 008_order_state_machine.sql
+    ├── 009_rls.sql
+    └── 010_security.sql
+````
+
+## Objetivos
+
+Las pruebas deben verificar:
+
+1. Integridad de tablas.
+2. Foreign keys.
+3. Constraints.
+4. CHECK constraints.
+5. UNIQUE constraints.
+6. Creación de órdenes.
+7. Checkout multi-producto.
+8. Inventario.
+9. Concurrencia.
+10. Idempotencia.
+11. Afiliados.
+12. Comisiones.
+13. Payment intents.
+14. Webhooks.
+15. Replay protection.
+16. Máquina de estados.
+17. RLS.
+18. Auditoría.
+19. Seguridad.
+
+## Regla fundamental
+
+Los precios, totales, stock, comisiones y estados financieros nunca deben
+considerarse confiables cuando provienen directamente del navegador.
+
+Las pruebas deben demostrar que PostgreSQL mantiene la fuente de verdad.
+
+## Pruebas de concurrencia
+
+El escenario crítico es:
+
+```text
+Cliente A ─────┐
+               ├──> mismo producto ──> FOR UPDATE
+Cliente B ─────┘
+
+              ↓
+
+      solamente una operación
+      puede consumir el stock
+      disponible simultáneamente
+```
+
+Debe comprobarse que nunca se produzca:
+
+```text
+stock < 0
+```
+
+ni que dos órdenes puedan reservar la misma unidad.
+
+## Idempotencia
+
+Una misma operación utilizando el mismo:
+
+```text
+Idempotency-Key
+```
+
+debe producir una única operación financiera.
+
+La repetición debe devolver el resultado almacenado y nunca crear:
+
+* otra orden;
+* otro payment intent;
+* otra comisión;
+* otra reserva de inventario.
+
+## Webhooks
+
+Los eventos repetidos deben ser ignorados mediante:
+
+* identificador único del evento;
+* hash;
+* timestamp;
+* ventana de replay;
+* estado de procesamiento.
+
+## RLS
+
+Las pruebas deben demostrar que:
+
+* un cliente solamente puede acceder a sus datos;
+* un vendedor solamente puede administrar sus recursos;
+* un afiliado no puede modificar atribuciones ajenas;
+* un usuario no puede modificar órdenes de otro usuario;
+* las operaciones administrativas requieren privilegios adecuados.
+
+## Ejecución
+
+La estrategia concreta de ejecución dependerá del runner seleccionado
+para el proyecto.
+
+Antes de ejecutar tests destructivos:
+
+1. utilizar una base de datos de prueba;
+2. ejecutar todas las migraciones;
+3. ejecutar `seed.sql`;
+4. ejecutar la suite;
+5. eliminar o restaurar el entorno.
+
+Nunca ejecutar pruebas destructivas directamente sobre producción.
+
+```
+```
