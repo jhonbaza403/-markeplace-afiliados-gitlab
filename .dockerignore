@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+coverage
+playwright-report
+test-results
+npm-debug.log*
+Dockerfile
+README.md
+docs
+supabase/.branches
+supabase/.temp
