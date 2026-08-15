@@ -1,134 +1,186 @@
-# ============================================================================
+import type { NextConfig } from "next";
 
-# CREDI MARKETPLACE — EDGE / CDN HEADERS
+const securityHeaders = [
+  {
+    key: "X-Content-Type-Options",
+    value: "nosniff",
+  },
+  {
+    key: "X-Frame-Options",
+    value: "SAMEORIGIN",
+  },
+  {
+    key: "Referrer-Policy",
+    value: "strict-origin-when-cross-origin",
+  },
+  {
+    key: "Permissions-Policy",
+    value:
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=()",
+  },
+  {
+    key: "Cross-Origin-Opener-Policy",
+    value: "same-origin",
+  },
+  {
+    key: "Cross-Origin-Resource-Policy",
+    value: "same-origin",
+  },
+  {
+    key: "X-DNS-Prefetch-Control",
+    value: "on",
+  },
+  {
+    key: "X-Permitted-Cross-Domain-Policies",
+    value: "none",
+  },
+  {
+    key: "X-Download-Options",
+    value: "noopen",
+  },
+];
 
-# Next.js 16.3 · React 19.2 · Node.js 24
+const contentSecurityPolicy = `
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob: https:;
+  font-src 'self' data:;
+  connect-src 'self' https:;
+  frame-src 'self';
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+  frame-ancestors 'self';
+  upgrade-insecure-requests;
+`
+  .replace(/\s{2,}/g, " ")
+  .trim();
 
-# ============================================================================
+const nextConfig: NextConfig = {
+  reactStrictMode: true,
 
-#
+  poweredByHeader: false,
 
-# NOTA:
+  compress: true,
 
-# Este archivo solo tendrá efecto si la plataforma/CDN de despliegue
+  productionBrowserSourceMaps: false,
 
-# reconoce el formato "_headers".
+  experimental: {
+    optimizePackageImports: [
+      "@supabase/supabase-js",
+      "@supabase/ssr",
+    ],
+  },
 
-#
+  images: {
+    formats: ["image/avif", "image/webp"],
 
-# La configuración principal de seguridad debe mantenerse también en
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+    ],
 
-# next.config.ts para garantizar su aplicación dentro de Next.js.
+    deviceSizes: [
+      320,
+      420,
+      640,
+      750,
+      828,
+      1080,
+      1200,
+      1440,
+      1920,
+    ],
 
-# ============================================================================
+    imageSizes: [
+      16,
+      32,
+      48,
+      64,
+      96,
+      128,
+      256,
+      384,
+    ],
+  },
 
-# ============================================================================
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          ...securityHeaders,
+          {
+            key: "Content-Security-Policy",
+            value: contentSecurityPolicy,
+          },
+        ],
+      },
 
-# NEXT.JS STATIC ASSETS
+      {
+        source: "/_next/static/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
 
-# ============================================================================
+      {
+        source: "/api/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-store, max-age=0",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+        ],
+      },
 
-#
+      {
+        source: "/api/payments/webhook/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+        ],
+      },
 
-# Los archivos generados por Next.js contienen hashes/versionado.
+      {
+        source: "/admin/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-store",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+        ],
+      },
+    ];
+  },
 
-# Por ello pueden almacenarse durante un año de manera inmutable.
+  async redirects() {
+    return [];
+  },
 
-#
+  async rewrites() {
+    return [];
+  },
+};
 
-/_next/static/*
-Cache-Control: public, max-age=31536000, immutable
-
-# ============================================================================
-
-# STATIC FONTS
-
-# ============================================================================
-
-/*.woff2
-Cache-Control: public, max-age=31536000, immutable
-
-/*.woff
-Cache-Control: public, max-age=31536000, immutable
-
-/*.ttf
-Cache-Control: public, max-age=31536000, immutable
-
-# ============================================================================
-
-# PUBLIC IMAGES
-
-# ============================================================================
-
-#
-
-# Las imágenes públicas pueden cachearse, pero no se consideran
-
-# necesariamente inmutables porque podrían reemplazarse.
-
-#
-
-/images/*
-Cache-Control: public, max-age=86400, stale-while-revalidate=604800
-
-# ============================================================================
-
-# FAVICON
-
-# ============================================================================
-
-/favicon.ico
-Cache-Control: public, max-age=86400, stale-while-revalidate=604800
-
-# ============================================================================
-
-# SECURITY HEADERS
-
-# ============================================================================
-
-/*
-X-Content-Type-Options: nosniff
-X-Frame-Options: SAMEORIGIN
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=()
-Cross-Origin-Opener-Policy: same-origin-allow-popups
-Cross-Origin-Resource-Policy: same-origin
-X-DNS-Prefetch-Control: on
-
-# ============================================================================
-
-# HSTS
-
-# ============================================================================
-
-#
-
-# SOLO debe utilizarse cuando el dominio completo funciona correctamente
-
-# mediante HTTPS.
-
-#
-
-# Si existen subdominios que todavía necesitan HTTP, elimina temporalmente
-
-# "includeSubDomains".
-
-#
-
-Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-
-# ============================================================================
-
-# API / DYNAMIC RESPONSES
-
-# ============================================================================
-
-#
-
-# Las rutas API no deben quedar almacenadas por CDN de manera accidental.
-
-#
-
-/api/*
-Cache-Control: private, no-store, max-age=0
-X-Content-Type-Options: nosniff
+export default nextConfig;
