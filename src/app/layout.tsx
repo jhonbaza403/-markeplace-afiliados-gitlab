@@ -2,44 +2,41 @@
 // ARCHIVO: src/app/layout.tsx
 // Credi Marketplace
 //
-// Root Layout Global
+// Root Layout Global Empresarial
 //
-// Next.js App Router
+// Next.js 16
+// React 19
 // TypeScript
 // ==========================================================
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import "./globals.css";
 
-import {
-  AuthProvider,
-} from "@/context/AuthContext";
-
-import {
-  CartProvider,
-} from "@/context/CartContext";
-
-import {
-  LanguageProvider,
-} from "@/context/LanguageContext";
-
-import {
-  RegionProvider,
-} from "@/context/RegionContext";
+import { AuthProvider } from "@/context/AuthContext";
+import { CartProvider } from "@/context/CartContext";
+import { LanguageProvider } from "@/context/LanguageContext";
+import { RegionProvider } from "@/context/RegionContext";
 
 
 // ==========================================================
-// METADATA
+// METADATA GLOBAL
 // ==========================================================
 
 export const metadata: Metadata = {
 
-  title:
-    "Credi Marketplace",
+  title: {
+    default: "Credi Marketplace",
+    template: "%s | Credi Marketplace",
+  },
 
   description:
-    "Marketplace B2B, afiliados, productos, servicios y comercio digital.",
+    "Plataforma empresarial de comercio digital, marketplace B2B, afiliados, productos, servicios y pagos.",
+
+
+  applicationName:
+    "Credi Marketplace",
+
 
   keywords: [
     "Marketplace",
@@ -47,10 +44,59 @@ export const metadata: Metadata = {
     "Afiliados",
     "Comercio electrónico",
     "Ventas digitales",
+    "Productos",
+    "Servicios",
   ],
 
-  applicationName:
-    "Credi Marketplace",
+
+  authors: [
+    {
+      name:
+        "Credi Marketplace",
+    },
+  ],
+
+
+  robots: {
+    index: true,
+    follow: true,
+  },
+
+
+  openGraph: {
+
+    title:
+      "Credi Marketplace",
+
+    description:
+      "Marketplace empresarial B2B, afiliados y comercio digital.",
+
+    type:
+      "website",
+
+    locale:
+      "es_ES",
+
+  },
+
+};
+
+
+
+// ==========================================================
+// VIEWPORT
+// ==========================================================
+
+export const viewport: Viewport = {
+
+  width:
+    "device-width",
+
+  initialScale:
+    1,
+
+  themeColor:
+    "#0f172a",
 
 };
 
@@ -71,36 +117,52 @@ export default function RootLayout({
 }>) {
 
 
-  return (
+return (
 
-    <html
-      lang="es"
-    >
+<html
+lang="es"
+suppressHydrationWarning
+>
 
-      <body>
 
-        <LanguageProvider>
+<body
+suppressHydrationWarning
+>
 
-          <RegionProvider>
 
-            <AuthProvider>
+<LanguageProvider>
 
-              <CartProvider>
 
-                {children}
+<RegionProvider>
 
-              </CartProvider>
 
-            </AuthProvider>
+<AuthProvider>
 
-          </RegionProvider>
 
-        </LanguageProvider>
+<CartProvider>
 
-      </body>
 
-    </html>
+{children}
 
-  );
+
+</CartProvider>
+
+
+</AuthProvider>
+
+
+</RegionProvider>
+
+
+</LanguageProvider>
+
+
+</body>
+
+
+</html>
+
+);
+
 
 }
