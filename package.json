@@ -4,6 +4,7 @@
   "private": true,
   "description": "Credi Marketplace - plataforma empresarial de comercio, afiliados, B2B, servicios y pagos.",
   "license": "UNLICENSED",
+  "packageManager": "npm@10.9.2",
   "engines": {
     "node": "22.x",
     "npm": "10.x"
