@@ -1,44 +1,127 @@
 // ==========================================================
-// CREDI MARKETPLACE
-// Authentication Session Helpers
-// Next.js 16.3 · Supabase
+// ARCHIVO: src/lib/auth/session.ts
+// Credi Marketplace
+//
+// Gestión de sesión autenticada
+//
+// Supabase SSR
+// Next.js App Router
 // ==========================================================
 
+import {
+  getDatabaseServerClient,
+} from "@/lib/database/server";
 
-import { createServerClient }
-from '@/lib/supabase/server';
+
+// ==========================================================
+// TIPOS
+// ==========================================================
+
+export interface AuthSession {
+
+  user: {
+
+    id: string;
+
+    email?: string;
+
+    role?: string;
+
+  } | null;
+
+
+  authenticated: boolean;
+
+}
+
 
 
 
 // ==========================================================
-// CURRENT USER
+// OBTENER SESIÓN ACTUAL
 // ==========================================================
 
+export async function getCurrentSession():
 
-export async function getCurrentUser(){
-
-
- const supabase =
- await createServerClient();
+Promise<AuthSession> {
 
 
- const {
-  data,
-  error
- }
- =
- await supabase.auth.getUser();
+  const supabase =
+    await getDatabaseServerClient();
 
 
 
- if(error){
+  const {
+    data,
+    error,
+  } =
+    await supabase.auth.getSession();
 
-  return null;
-
- }
 
 
- return data.user;
+  if (
+    error ||
+    !data.session
+  ) {
+
+    return {
+
+      user: null,
+
+      authenticated: false,
+
+    };
+
+  }
+
+
+
+  const user =
+    data.session.user;
+
+
+
+  return {
+
+    user: {
+
+      id:
+        user.id,
+
+
+      email:
+        user.email,
+
+
+      role:
+        user.user_metadata?.role
+        ??
+        "user",
+
+    },
+
+
+    authenticated: true,
+
+  };
+
+}
+
+
+
+
+// ==========================================================
+// OBTENER USUARIO
+// ==========================================================
+
+export async function getCurrentUser() {
+
+
+  const session =
+    await getCurrentSession();
+
+
+  return session.user;
 
 }
 
@@ -46,31 +129,31 @@ export async function getCurrentUser(){
 
 
 
-
-
 // ==========================================================
-// REQUIRE AUTH
+// VALIDAR LOGIN
 // ==========================================================
 
-
-export async function requireUser(){
-
-
- const user =
- await getCurrentUser();
+export async function requireUser() {
 
 
-
- if(!user){
-
-  throw new Error(
-   'Authentication required'
-  );
-
- }
+  const session =
+    await getCurrentSession();
 
 
 
- return user;
+  if (
+    !session.authenticated ||
+    !session.user
+  ) {
+
+    throw new Error(
+      "Usuario no autenticado",
+    );
+
+  }
+
+
+
+  return session.user;
 
 }
