@@ -1,85 +1,40 @@
 {
-  "name": "credi-marketplace",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Credi Marketplace — plataforma de comercio, afiliados, B2B, servicios profesionales y pagos.",
-  "license": "UNLICENSED",
-
-  "engines": {
-    "node": "22.x",
-    "npm": "10.x"
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
-
-  "scripts": {
-    "dev": "next dev",
-    "dev:turbo": "next dev --turbopack",
-
-    "build": "next build",
-    "start": "next start",
-
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-
-    "check": "npm run lint && npm run typecheck",
-
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-
-    "supabase:start": "supabase start",
-    "supabase:stop": "supabase stop",
-    "supabase:reset": "supabase db reset",
-    "supabase:push": "supabase db push",
-    "supabase:pull": "supabase db pull",
-
-    "supabase:types": "supabase gen types typescript --local > src/types/database.ts",
-
-    "prepare": "husky"
-  },
-
-  "dependencies": {
-    "@supabase/ssr": "^0.7.0",
-    "@supabase/supabase-js": "^2.50.0",
-
-    "next": "16.3.0",
-
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-
-    "lucide-react": "^0.511.0",
-
-    "zod": "^4.0.0"
-  },
-
-  "devDependencies": {
-    "@playwright/test": "^1.55.0",
-
-    "@tailwindcss/postcss": "^4.0.0",
-
-    "@testing-library/jest-dom": "^6.8.0",
-    "@testing-library/react": "^16.3.0",
-
-    "@types/node": "^22.15.0",
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
-
-    "@vitest/coverage-v8": "4.1.10",
-    "vitest": "4.1.10",
-
-    "eslint": "^9.30.0",
-    "eslint-config-next": "16.3.0",
-
-    "husky": "^9.1.0",
-
-    "jsdom": "^26.1.0",
-
-    "prettier": "^3.5.0",
-
-    "typescript": "^5.8.0"
-  },
-
-  "packageManager": "npm@10.9.2"
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
