@@ -1,11 +1,14 @@
 // ==========================================================
 // ARCHIVO: src/context/AuthContext.tsx
+//
 // Credi Marketplace
 //
 // Global Authentication Context
 //
 // Supabase Auth
-// React Context API
+// User Profile
+// Roles & Permissions
+//
 // Next.js 16
 // ==========================================================
 
@@ -37,19 +40,66 @@ import {
 // TIPOS
 // ==========================================================
 
-interface AuthContextType {
+
+export type UserRole =
+  | "admin"
+  | "vendor"
+  | "customer";
 
 
-  user: User | null;
+
+export interface Profile {
 
 
-  loading: boolean;
+  id: string;
 
 
-  logout: () => Promise<void>;
+  full_name?: string | null;
+
+
+  avatar_url?: string | null;
+
+
+  role: UserRole;
+
+
+  created_at?: string;
+
 
 
 }
+
+
+
+
+interface AuthContextType {
+
+
+  user:
+
+  User | null;
+
+
+
+  profile:
+
+  Profile | null;
+
+
+
+  loading:
+
+  boolean;
+
+
+
+  logout():
+
+  Promise<void>;
+
+
+}
+
 
 
 
@@ -58,10 +108,12 @@ interface AuthContextType {
 // CONTEXT
 // ==========================================================
 
+
 const AuthContext =
-  createContext<AuthContextType | undefined>(
-    undefined,
-  );
+createContext<AuthContextType | undefined>(
+  undefined,
+);
+
 
 
 
@@ -72,205 +124,386 @@ const AuthContext =
 // PROVIDER
 // ==========================================================
 
+
 export function AuthProvider({
 
-  children,
+children,
 
-}: {
+}:{
 
-  children: React.ReactNode;
+children:React.ReactNode;
 
 }) {
 
 
-  const [user,setUser] =
-    useState<User | null>(null);
 
+const [
+  user,
+  setUser,
+]
+=
+useState<User|null>(null);
 
 
-  const [loading,setLoading] =
-    useState<boolean>(true);
 
+const [
+  profile,
+  setProfile,
+]
+=
+useState<Profile|null>(null);
 
 
-  useEffect(()=>{
 
+const [
+  loading,
+  setLoading,
+]
+=
+useState(true);
 
-    const supabase =
-      createClient();
 
 
 
-    let mounted = true;
 
+// ========================================================
+// CARGAR PERFIL
+// ========================================================
 
 
-    async function loadSession(){
+async function loadProfile(
+  userId:string,
+){
 
 
-      try {
+const supabase =
+createClient();
 
 
-        const {
-          data,
-        } =
-        await supabase.auth.getUser();
 
+const {
 
+data,
 
-        if(mounted){
+error,
 
-          setUser(
-            data.user ?? null,
-          );
+}
 
-        }
+=
+await supabase
 
+.from("profiles")
 
-      }
+.select(
+`
+id,
+full_name,
+avatar_url,
+role,
+created_at
+`
+)
 
+.eq(
+"id",
+userId,
+)
 
-      catch(error){
+.maybeSingle();
 
 
-        console.error(
-          "Error cargando usuario:",
-          error,
-        );
 
 
-        if(mounted){
 
-          setUser(null);
+if(error){
 
-        }
+console.error(
+"Error cargando perfil:",
+error,
+);
 
+setProfile(null);
 
-      }
+return;
 
+}
 
-      finally{
 
 
-        if(mounted){
+setProfile(
+data as Profile | null,
+);
 
-          setLoading(false);
-
-        }
-
-
-      }
-
-
-    }
-
-
-
-    loadSession();
-
-
-
-
-
-    const {
-
-      data:{
-        subscription,
-
-      },
-
-    } =
-    supabase.auth.onAuthStateChange(
-
-      (
-        _event,
-
-        session,
-
-      )=>{
-
-
-        if(mounted){
-
-          setUser(
-            session?.user ?? null,
-          );
-
-        }
-
-
-      },
-
-    );
-
-
-
-
-
-    return ()=>{
-
-
-      mounted=false;
-
-
-      subscription.unsubscribe();
-
-
-    };
-
-
-  },[]);
-
-
-
-
-
-
-
-  async function logout(){
-
-
-    const supabase =
-      createClient();
-
-
-
-    await supabase.auth.signOut();
-
-
-    setUser(null);
-
-
-  }
-
-
-
-
-
-  return (
-
-    <AuthContext.Provider
-
-      value={{
-
-        user,
-
-        loading,
-
-        logout,
-
-      }}
-
-    >
-
-      {children}
-
-    </AuthContext.Provider>
-
-  );
 
 
 }
+
+
+
+
+
+
+
+// ========================================================
+// SESIÓN
+// ========================================================
+
+
+useEffect(()=>{
+
+
+const supabase =
+createClient();
+
+
+
+let mounted=true;
+
+
+
+
+
+async function initialize(){
+
+
+try{
+
+
+const {
+
+data,
+
+}
+=
+await supabase.auth.getUser();
+
+
+
+
+
+if(!mounted)
+return;
+
+
+
+
+
+const currentUser =
+data.user ?? null;
+
+
+
+setUser(
+currentUser,
+);
+
+
+
+
+
+if(currentUser){
+
+await loadProfile(
+currentUser.id,
+);
+
+}
+else{
+
+setProfile(null);
+
+}
+
+
+
+}
+
+catch(error){
+
+
+console.error(
+"Error inicializando autenticación:",
+error,
+);
+
+
+setUser(null);
+
+setProfile(null);
+
+
+}
+
+finally{
+
+
+if(mounted){
+
+setLoading(false);
+
+}
+
+
+}
+
+
+}
+
+
+
+
+
+initialize();
+
+
+
+
+
+const {
+
+data:{
+subscription,
+
+},
+
+}
+
+=
+supabase.auth.onAuthStateChange(
+
+async (
+_event,
+
+session,
+
+)=>{
+
+
+if(!mounted)
+return;
+
+
+
+
+const currentUser =
+session?.user ?? null;
+
+
+
+setUser(
+currentUser,
+);
+
+
+
+if(currentUser){
+
+await loadProfile(
+currentUser.id,
+);
+
+}
+else{
+
+setProfile(null);
+
+}
+
+
+});
+
+
+
+
+
+
+return ()=>{
+
+
+mounted=false;
+
+
+subscription.unsubscribe();
+
+
+};
+
+
+
+},[]);
+
+
+
+
+
+
+
+
+// ========================================================
+// LOGOUT
+// ========================================================
+
+
+async function logout(){
+
+
+const supabase =
+createClient();
+
+
+
+await supabase.auth.signOut();
+
+
+
+setUser(null);
+
+
+setProfile(null);
+
+
+}
+
+
+
+
+
+
+
+return (
+
+
+<AuthContext.Provider
+
+value={{
+
+user,
+
+profile,
+
+loading,
+
+logout,
+
+}}
+
+>
+
+
+{children}
+
+
+</AuthContext.Provider>
+
+
+);
+
+
+
+}
+
+
+
 
 
 
@@ -281,29 +514,33 @@ export function AuthProvider({
 // HOOK
 // ==========================================================
 
+
 export function useAuth(){
 
 
-  const context =
-    useContext(AuthContext);
+const context =
+useContext(
+AuthContext,
+);
 
 
 
-  if(!context){
+if(!context){
 
 
-    throw new Error(
+throw new Error(
 
-      "useAuth debe utilizarse dentro de AuthProvider",
+"useAuth debe utilizarse dentro de AuthProvider",
 
-    );
-
-
-  }
+);
 
 
+}
 
-  return context;
+
+
+return context;
+
 
 
 }
