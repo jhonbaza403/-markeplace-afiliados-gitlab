@@ -1,0 +1,51 @@
+# ============================================================
+# CREDI MARKETPLACE
+# CODEOWNERS
+#
+# Protección de áreas críticas
+# ============================================================
+
+
+# Aplicación principal
+
+/src/app/        @jhonbaza403
+
+
+# Componentes UI
+
+/src/components/ @jhonbaza403
+
+
+# Seguridad y configuración
+
+/src/config/     @jhonbaza403
+
+/src/env.ts      @jhonbaza403
+
+/next.config.ts  @jhonbaza403
+
+
+# Servicios críticos
+
+/src/services/   @jhonbaza403
+
+/src/lib/        @jhonbaza403
+
+
+# Base de datos Supabase
+
+/supabase/       @jhonbaza403
+
+
+# Seguridad CI/CD
+
+/.github/        @jhonbaza403
+
+
+# Pagos y financiero
+
+/src/features/payment/ @jhonbaza403
+
+/src/features/orders/  @jhonbaza403
+
+/src/features/affiliate/ @jhonbaza403
