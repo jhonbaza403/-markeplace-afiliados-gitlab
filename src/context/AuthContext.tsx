@@ -1,82 +1,52 @@
-"use client";
-
 // ==========================================================
 // ARCHIVO: src/context/AuthContext.tsx
 // Credi Marketplace
 //
-// Contexto global de autenticación
+// Global Authentication Context
 //
-// Next.js App Router
-// TypeScript
 // Supabase Auth
+// React Context API
 // ==========================================================
+
+
+"use client";
+
 
 import {
   createContext,
   useContext,
   useEffect,
-  useMemo,
   useState,
-  type ReactNode,
 } from "react";
 
+
 import type {
-  Session,
   User,
 } from "@supabase/supabase-js";
 
+
 import {
-  supabaseClient,
+  supabase,
 } from "@/lib/supabase/client";
+
+
 
 
 // ==========================================================
 // TIPOS
 // ==========================================================
 
-export type UserRole =
-  | "admin"
-  | "seller"
-  | "affiliate"
-  | "customer"
-  | "user";
+interface AuthContextType {
 
-
-export interface AuthUser extends User {
-  role?: UserRole;
-}
-
-
-export interface AuthContextValue {
-
-  user: AuthUser | null;
-
-  session: Session | null;
+  user: User | null;
 
   loading: boolean;
 
-  isAuthenticated: boolean;
+  logout: () => Promise<void>;
 
-  role: UserRole | null;
-
-  signIn(
-    email: string,
-    password: string,
-  ): Promise<{
-    error: Error | null;
-  }>;
-
-  signUp(
-    email: string,
-    password: string,
-  ): Promise<{
-    error: Error | null;
-  }>;
-
-  signOut(): Promise<void>;
-
-  refreshSession(): Promise<void>;
 }
+
+
 
 
 // ==========================================================
@@ -84,9 +54,12 @@ export interface AuthContextValue {
 // ==========================================================
 
 const AuthContext =
-  createContext<AuthContextValue | undefined>(
+  createContext<AuthContextType | undefined>(
     undefined,
   );
+
+
+
 
 
 // ==========================================================
@@ -94,119 +67,101 @@ const AuthContext =
 // ==========================================================
 
 export function AuthProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
 
-  const [
-    session,
-    setSession,
-  ] = useState<Session | null>(null);
+  children,
+
+}: {
+
+  children: React.ReactNode;
+
+}) {
 
 
   const [
     user,
     setUser,
-  ] = useState<AuthUser | null>(null);
+  ] =
+    useState<User | null>(null);
+
 
 
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] =
+    useState(true);
 
 
 
-  // --------------------------------------------------------
-  // Inicialización sesión
-  // --------------------------------------------------------
 
   useEffect(() => {
-
-    let mounted = true;
 
 
     async function loadSession() {
 
+
       const {
         data,
-        error,
       } =
-        await supabaseClient.auth.getSession();
+      await supabase.auth.getUser();
 
 
-      if (!mounted) return;
 
-
-      if (error) {
-
-        setSession(null);
-        setUser(null);
-
-      } else {
-
-        const currentSession =
-          data.session;
-
-
-        setSession(
-          currentSession,
-        );
-
-
-        setUser(
-          currentSession?.user
-            ? currentSession.user as AuthUser
-            : null,
-        );
-
-      }
+      setUser(
+        data.user ?? null,
+      );
 
 
       setLoading(false);
 
+
     }
+
 
 
     loadSession();
 
 
 
+
     const {
-      data:
-      {
+
+      data: {
         subscription,
+
       },
+
     } =
-      supabaseClient.auth.onAuthStateChange(
-        (
-          _event,
-          currentSession,
-        ) => {
+    supabase.auth.onAuthStateChange(
+
+      (
+        _event,
+
+        session,
+
+      ) => {
 
 
-          setSession(
-            currentSession,
-          );
+        setUser(
+
+          session?.user
+          ??
+          null,
+
+        );
 
 
-          setUser(
-            currentSession?.user
-              ? currentSession.user as AuthUser
-              : null,
-          );
+      },
 
-        },
-      );
+    );
 
 
 
     return () => {
 
-      mounted = false;
 
       subscription.unsubscribe();
+
 
     };
 
@@ -217,159 +172,35 @@ export function AuthProvider({
 
 
 
-  // --------------------------------------------------------
-  // Login
-  // --------------------------------------------------------
-
-  async function signIn(
-    email: string,
-    password: string,
-  ) {
-
-    const {
-      error,
-    } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password,
-      });
+  async function logout() {
 
 
-    return {
-      error: error
-        ? new Error(error.message)
-        : null,
-    };
+    await supabase.auth.signOut();
 
-  }
-
-
-
-
-
-  // --------------------------------------------------------
-  // Registro
-  // --------------------------------------------------------
-
-  async function signUp(
-    email: string,
-    password: string,
-  ) {
-
-    const {
-      error,
-    } =
-      await supabaseClient.auth.signUp({
-        email,
-        password,
-      });
-
-
-    return {
-      error: error
-        ? new Error(error.message)
-        : null,
-    };
-
-  }
-
-
-
-
-
-  // --------------------------------------------------------
-  // Logout
-  // --------------------------------------------------------
-
-  async function signOut() {
-
-    await supabaseClient.auth.signOut();
-
-    setSession(null);
 
     setUser(null);
 
-  }
-
-
-
-
-
-  // --------------------------------------------------------
-  // Refresh sesión
-  // --------------------------------------------------------
-
-  async function refreshSession() {
-
-    const {
-      data,
-    } =
-      await supabaseClient.auth.refreshSession();
-
-
-    setSession(
-      data.session,
-    );
-
-
-    setUser(
-      data.session?.user
-        ? data.session.user as AuthUser
-        : null,
-    );
 
   }
 
 
-
-
-
-  const role =
-    (user?.role ?? null) as UserRole | null;
-
-
-
-  const value =
-    useMemo<AuthContextValue>(
-      () => ({
-
-        user,
-
-        session,
-
-        loading,
-
-        isAuthenticated:
-          Boolean(user),
-
-
-        role,
-
-
-        signIn,
-
-        signUp,
-
-        signOut,
-
-        refreshSession,
-
-      }),
-
-      [
-        user,
-        session,
-        loading,
-        role,
-      ],
-    );
 
 
 
   return (
 
     <AuthContext.Provider
-      value={value}
+
+      value={{
+
+        user,
+
+        loading,
+
+        logout,
+
+      }}
+
     >
 
       {children}
@@ -378,7 +209,11 @@ export function AuthProvider({
 
   );
 
+
 }
+
+
+
 
 
 // ==========================================================
@@ -387,19 +222,29 @@ export function AuthProvider({
 
 export function useAuth() {
 
+
   const context =
     useContext(
       AuthContext,
     );
 
 
+
   if (!context) {
 
     throw new Error(
+
       "useAuth debe utilizarse dentro de AuthProvider",
+
     );
 
   }
+
+
+
+  return context;
+
+}
 
 
   return context;
