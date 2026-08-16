@@ -49,7 +49,7 @@ import {
   useSearchParams,
 } from 'next/navigation';
 
-import { createClient } from '@/lib/supabase/client';
+import { supabaseClient } from '@/lib/supabase/client';
 
 // ==========================================================
 // 1. TIPOS
@@ -148,8 +148,7 @@ export default function ProductDetailPage() {
       setErrorMessage(null);
 
       try {
-        const supabase = createClient();
-
+        const supabase = supabaseClient;
         const {
           data,
           error,
