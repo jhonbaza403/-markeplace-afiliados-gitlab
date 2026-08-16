@@ -1,46 +1,53 @@
 import type { NextConfig } from "next";
 
+
 const securityHeaders = [
+
   {
     key: "X-Content-Type-Options",
     value: "nosniff",
   },
+
   {
     key: "X-Frame-Options",
     value: "SAMEORIGIN",
   },
+
   {
     key: "Referrer-Policy",
     value: "strict-origin-when-cross-origin",
   },
+
   {
     key: "Permissions-Policy",
     value:
       "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   },
+
   {
     key: "Cross-Origin-Opener-Policy",
     value: "same-origin",
   },
+
   {
     key: "Cross-Origin-Resource-Policy",
     value: "same-site",
   },
-  {
-    key: "X-DNS-Prefetch-Control",
-    value: "on",
-  },
+
   {
     key: "X-Permitted-Cross-Domain-Policies",
     value: "none",
   },
+
 ];
 
 
+
 const contentSecurityPolicy = `
+
 default-src 'self';
 
-script-src 
+script-src
 'self'
 'unsafe-inline'
 'unsafe-eval';
@@ -53,18 +60,21 @@ img-src
 'self'
 data:
 blob:
-https:;
+https:
+;
 
 font-src
 'self'
 data:
-https:;
+https:
+;
 
 connect-src
 'self'
 https://*.supabase.co
 wss://*.supabase.co
-https:;
+https:
+;
 
 frame-src
 'self';
@@ -82,57 +92,88 @@ frame-ancestors
 'self';
 
 upgrade-insecure-requests;
+
 `
 .replace(/\s{2,}/g, " ")
 .trim();
 
 
+
 const nextConfig: NextConfig = {
 
-  reactStrictMode: true,
 
-  poweredByHeader: false,
-
-  compress: true,
-
-  productionBrowserSourceMaps: false,
+  reactStrictMode:true,
 
 
-  experimental: {
+  poweredByHeader:false,
 
-    optimizePackageImports: [
+
+  compress:true,
+
+
+  productionBrowserSourceMaps:false,
+
+
+  typescript:{
+    ignoreBuildErrors:false,
+  },
+
+
+  experimental:{
+
+
+    optimizePackageImports:[
+
       "@supabase/supabase-js",
+
       "@supabase/ssr",
+
       "lucide-react",
+
     ],
 
   },
 
 
-  images: {
 
-    formats: [
+  images:{
+
+
+    formats:[
+
       "image/avif",
+
       "image/webp",
-    ],
-
-
-    remotePatterns: [
-
-      {
-        protocol: "https",
-        hostname: "*.supabase.co",
-      },
-
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-      },
 
     ],
 
 
-    deviceSizes: [
+    remotePatterns:[
+
+
+      {
+
+        protocol:"https",
+
+        hostname:"*.supabase.co",
+
+      },
+
+
+      {
+
+        protocol:"https",
+
+        hostname:"images.unsplash.com",
+
+      },
+
+
+    ],
+
+
+    deviceSizes:[
+
       320,
       420,
       640,
@@ -142,10 +183,12 @@ const nextConfig: NextConfig = {
       1200,
       1440,
       1920,
+
     ],
 
 
-    imageSizes: [
+    imageSizes:[
+
       16,
       32,
       48,
@@ -154,121 +197,134 @@ const nextConfig: NextConfig = {
       128,
       256,
       384,
+
     ],
 
   },
 
 
-  async headers() {
+
+  async headers(){
+
 
     return [
 
-      {
-        source: "/(.*)",
 
-        headers: [
+      {
+
+        source:"/(.*)",
+
+
+        headers:[
 
           ...securityHeaders,
 
+
           {
-            key:
-              "Content-Security-Policy",
+
+            key:"Content-Security-Policy",
 
             value:
               contentSecurityPolicy,
+
           },
 
-        ],
-      },
-
-
-      {
-        source:
-          "/_next/static/(.*)",
-
-        headers: [
-
-          {
-            key:
-              "Cache-Control",
-
-            value:
-              "public, max-age=31536000, immutable",
-          },
-
-        ],
-      },
-
-
-      {
-        source:
-          "/api/(.*)",
-
-        headers: [
-
-          {
-            key:
-              "Cache-Control",
-
-            value:
-              "private, no-store",
-          },
-
-          {
-            key:
-              "X-Content-Type-Options",
-
-            value:
-              "nosniff",
-          },
 
         ],
 
       },
 
 
-      {
-        source:
-          "/api/payments/webhook/(.*)",
 
-        headers: [
+      {
+
+
+        source:"/_next/static/(.*)",
+
+
+        headers:[
+
 
           {
-            key:
-              "Cache-Control",
+
+            key:"Cache-Control",
 
             value:
-              "no-store",
+            "public, max-age=31536000, immutable",
+
           },
+
 
         ],
 
       },
 
 
+
       {
-        source:
-          "/admin/(.*)",
 
-        headers: [
 
-          {
-            key:
-              "Cache-Control",
+        source:"/api/(.*)",
 
-            value:
-              "private, no-store",
-          },
+
+        headers:[
+
 
           {
-            key:
-              "X-Frame-Options",
+
+            key:"Cache-Control",
 
             value:
-              "DENY",
+            "private, no-store",
+
           },
+
+
+          {
+
+            key:"X-Content-Type-Options",
+
+            value:"nosniff",
+
+          },
+
 
         ],
+
+      },
+
+
+
+      {
+
+
+        source:"/admin/(.*)",
+
+
+        headers:[
+
+
+          {
+
+            key:"Cache-Control",
+
+            value:
+            "private, no-store",
+
+          },
+
+
+          {
+
+            key:"X-Frame-Options",
+
+            value:"DENY",
+
+          },
+
+
+        ],
+
 
       },
 
@@ -279,5 +335,7 @@ const nextConfig: NextConfig = {
 
 
 };
+
+
 
 export default nextConfig;
