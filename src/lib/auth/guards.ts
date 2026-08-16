@@ -1,189 +1,66 @@
-// ==========================================================
-// ARCHIVO: src/lib/auth/guards.ts
-// Credi Marketplace
-//
-// Route Guards / Authorization Layer
-//
-// RBAC Security
-//
-// Next.js App Router
-// ==========================================================
-
-
 import {
   redirect,
 } from "next/navigation";
 
-
 import {
-  getCurrentUser,
-} from "./session";
+  createClient,
+} from "@/lib/supabase/server";
 
 
-import {
-  hasPermission,
-  type Permission,
-} from "./permissions";
+export async function requireAdmin(){
+
+  const supabase =
+    await createClient();
 
 
-import {
-  isValidRole,
-  type UserRole,
-} from "./roles";
-
-
-
-
-// ==========================================================
-// REQUIRE AUTHENTICATED USER
-// ==========================================================
-
-export async function requireAuth() {
-
-
-  const user =
-    await getCurrentUser();
+  const {
+    data:{
+      user,
+    },
+  } =
+  await supabase.auth.getUser();
 
 
 
-  if (!user) {
+  if(!user){
 
-    redirect(
-      "/login",
-    );
+    redirect("/login");
 
   }
 
 
 
-  return user;
-
-}
-
-
-
-
-// ==========================================================
-// REQUIRE ROLE
-// ==========================================================
-
-export async function requireRole(
-
-  requiredRole: UserRole,
-
-) {
-
-
-  const user =
-    await requireAuth();
-
-
-
-  const role =
-    user.role;
-
-
-
-  if (
-    !isValidRole(role)
-  ) {
-
-    redirect(
-      "/unauthorized",
-    );
-
-  }
-
-
-
-  if (
-    role !== requiredRole &&
-    role !== "admin"
-  ) {
-
-    redirect(
-      "/unauthorized",
-    );
-
-  }
-
-
-
-  return user;
-
-}
-
-
-
-
-// ==========================================================
-// REQUIRE PERMISSION
-// ==========================================================
-
-export async function requirePermission(
-
-  permission: Permission,
-
-) {
-
-
-  const user =
-    await requireAuth();
-
-
-
-  const role =
-    user.role;
-
-
-
-  if (
-    !isValidRole(role)
-  ) {
-
-    redirect(
-      "/unauthorized",
-    );
-
-  }
-
-
-
-  if (
-    !hasPermission(
-      role,
-      permission,
+  const {
+    data:profile,
+  } =
+  await supabase
+    .from("profiles")
+    .select("role")
+    .eq(
+      "id",
+      user.id,
     )
-  ) {
+    .single();
 
-    redirect(
-      "/unauthorized",
-    );
+
+
+  if(
+    !profile ||
+    profile.role !== "admin"
+  ){
+
+    redirect("/");
 
   }
 
 
 
-  return user;
+  return {
 
-}
-
-
-
-
-// ==========================================================
-// CHECK AUTH (SIN REDIRECT)
-// ==========================================================
-
-export async function checkAuth() {
-
-
-  const user =
-    await getCurrentUser();
-
-
-  return Boolean(
     user,
-  );
+
+    profile,
+
+  };
 
 }
