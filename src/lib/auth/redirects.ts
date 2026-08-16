@@ -1,67 +1,136 @@
-import 'server-only'
+// ==========================================================
+// ARCHIVO: src/lib/auth/redirects.ts
+// Credi Marketplace
+//
+// Authentication Redirect Manager
+//
+// Next.js App Router
+// ==========================================================
 
-import type { Role } from './roles'
 
-export const AUTH_ROUTES = {
-  LOGIN: '/auth/login',
-  REGISTER: '/auth/register',
-  FORGOT_PASSWORD: '/auth/forgot-password',
-  UPDATE_PASSWORD: '/auth/update-password',
-  VERIFY_EMAIL: '/auth/verify-email',
-  AUTH_ERROR: '/auth/error',
-} as const
+import type {
+  UserRole,
+} from "./roles";
 
-export const APP_ROUTES = {
-  DASHBOARD: '/dashboard',
-  MARKETPLACE: '/marketplace',
-  B2B: '/b2b',
-} as const
 
-export function getDefaultRedirectForRole(
-  role: Role,
+
+
+// ==========================================================
+// RUTAS POR ROL
+// ==========================================================
+
+export const ROLE_REDIRECTS:
+
+Record<UserRole, string> = {
+
+
+  admin:
+
+    "/dashboard/admin",
+
+
+
+  seller:
+
+    "/dashboard/seller",
+
+
+
+  affiliate:
+
+    "/dashboard/affiliate",
+
+
+
+  customer:
+
+    "/dashboard",
+
+
+
+  user:
+
+    "/dashboard",
+
+
+};
+
+
+
+
+// ==========================================================
+// OBTENER RUTA SEGÚN ROL
+// ==========================================================
+
+export function getRedirectByRole(
+
+  role?: string | null,
+
 ): string {
-  switch (role) {
-    case 'admin':
-      return '/admin'
 
-    case 'vendor':
-      return '/dashboard/vendor'
 
-    case 'professional':
-      return '/dashboard/professional'
+  if (!role) {
 
-    case 'company':
-      return '/dashboard/company'
+    return "/dashboard";
 
-    case 'customer':
-    default:
-      return '/dashboard'
   }
+
+
+
+  if (
+    role in ROLE_REDIRECTS
+  ) {
+
+    return ROLE_REDIRECTS[
+      role as UserRole
+    ];
+
+  }
+
+
+
+  return "/dashboard";
+
 }
 
-export function sanitizeRedirect(
-  value: string | null | undefined,
-  fallback = APP_ROUTES.DASHBOARD,
+
+
+
+// ==========================================================
+// REDIRECCIÓN DESPUÉS DEL LOGIN
+// ==========================================================
+
+export function getLoginRedirect(
+
+  user?: {
+
+    role?: string | null;
+
+  } | null,
+
 ): string {
-  if (!value) {
-    return fallback
-  }
 
-  /*
-   * Evita open redirects.
-   *
-   * Solo aceptamos rutas internas:
-   * /dashboard
-   * /marketplace
-   * /checkout
-   *
-   * Nunca:
-   * https://sitio-malicioso.com
-   * //sitio-malicioso.com
-   */
-  if (!value.startsWith('/') || value.startsWith('//')) {
-    return fallback
-  }
 
-  return value
+  return getRedirectByRole(
+
+    user?.role,
+
+  );
+
+}
+
+
+
+
+// ==========================================================
+// REDIRECCIÓN DESPUÉS DEL LOGOUT
+// ==========================================================
+
+export function getLogoutRedirect():
+
+string {
+
+
+  return "/login";
+
 }
