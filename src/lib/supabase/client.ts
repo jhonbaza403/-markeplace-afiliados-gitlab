@@ -4,62 +4,81 @@
 //
 // Supabase Browser Client
 //
-// Next.js App Router
-// TypeScript
+// Next.js 16
+// React 19
+// Supabase SSR
 // ==========================================================
+
 
 import {
   createBrowserClient,
 } from "@supabase/ssr";
 
 
+
+
+
 // ==========================================================
-// VARIABLES DE ENTORNO
+// VARIABLES
 // ==========================================================
 
+
 const supabaseUrl =
-  process.env
-    .NEXT_PUBLIC_SUPABASE_URL;
+process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 
 const supabaseAnonKey =
-  process.env
-    .NEXT_PUBLIC_SUPABASE_ANON_KEY;
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+
+
 
 
 
 // ==========================================================
-// VALIDACIÓN
+// CLIENT FACTORY
 // ==========================================================
 
-if (!supabaseUrl) {
 
-  throw new Error(
-    "Falta NEXT_PUBLIC_SUPABASE_URL en variables de entorno",
-  );
+export function createClient(){
+
+
+if(!supabaseUrl){
+
+
+throw new Error(
+
+"NEXT_PUBLIC_SUPABASE_URL no está configurada"
+
+);
+
 
 }
 
 
-if (!supabaseAnonKey) {
 
-  throw new Error(
-    "Falta NEXT_PUBLIC_SUPABASE_ANON_KEY en variables de entorno",
-  );
+if(!supabaseAnonKey){
+
+
+throw new Error(
+
+"NEXT_PUBLIC_SUPABASE_ANON_KEY no está configurada"
+
+);
+
 
 }
 
 
 
-// ==========================================================
-// CLIENTE SUPABASE
-// ==========================================================
 
-export const supabaseClient =
-  createBrowserClient(
+return createBrowserClient(
 
-    supabaseUrl,
+supabaseUrl,
 
-    supabaseAnonKey,
+supabaseAnonKey
 
-  );
+);
+
+
+}
