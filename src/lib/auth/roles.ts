@@ -1,51 +1,157 @@
-import 'server-only'
+// ==========================================================
+// ARCHIVO: src/lib/auth/roles.ts
+// Credi Marketplace
+//
+// Sistema de Roles RBAC
+//
+// Role Based Access Control
+//
+// Next.js App Router
+// TypeScript
+// ==========================================================
 
-export const ROLES = {
-  CUSTOMER: 'customer',
-  VENDOR: 'vendor',
-  PROFESSIONAL: 'professional',
-  COMPANY: 'company',
-  ADMIN: 'admin',
-} as const
 
-export type Role = (typeof ROLES)[keyof typeof ROLES]
+// ==========================================================
+// ROLES DISPONIBLES
+// ==========================================================
 
-export const ALL_ROLES: readonly Role[] = Object.values(ROLES)
+export const USER_ROLES = {
 
-export function isRole(value: unknown): value is Role {
-  return (
-    typeof value === 'string' &&
-    ALL_ROLES.includes(value as Role)
-  )
-}
+  ADMIN: "admin",
 
-export function normalizeRole(value: unknown): Role {
-  if (isRole(value)) {
-    return value
+  SELLER: "seller",
+
+  AFFILIATE: "affiliate",
+
+  CUSTOMER: "customer",
+
+  USER: "user",
+
+} as const;
+
+
+
+export type UserRole =
+  typeof USER_ROLES[
+    keyof typeof USER_ROLES
+  ];
+
+
+
+
+// ==========================================================
+// VALIDACIÓN DE ROLES
+// ==========================================================
+
+export function isValidRole(
+  role?: string | null,
+): role is UserRole {
+
+  if (!role) {
+
+    return false;
+
   }
 
-  return ROLES.CUSTOMER
+
+  return Object
+    .values(USER_ROLES)
+    .includes(
+      role as UserRole,
+    );
+
 }
 
-export function hasRole(
-  userRole: Role,
-  allowedRoles: readonly Role[],
+
+
+
+// ==========================================================
+// NOMBRE LEGIBLE
+// ==========================================================
+
+export function getRoleLabel(
+  role: UserRole,
+): string {
+
+
+  const labels: Record<
+    UserRole,
+    string
+  > = {
+
+
+    admin:
+      "Administrador",
+
+
+    seller:
+      "Vendedor B2B",
+
+
+    affiliate:
+      "Afiliado",
+
+
+    customer:
+      "Cliente",
+
+
+    user:
+      "Usuario",
+
+  };
+
+
+  return labels[role];
+
+}
+
+
+
+
+// ==========================================================
+// JERARQUÍA DE PRIVILEGIOS
+// ==========================================================
+
+export const ROLE_PRIORITY:
+Record<UserRole, number> = {
+
+
+  user:
+    1,
+
+
+  customer:
+    2,
+
+
+  affiliate:
+    3,
+
+
+  seller:
+    4,
+
+
+  admin:
+    5,
+
+};
+
+
+
+
+
+export function hasHigherRole(
+  currentRole: UserRole,
+  requiredRole: UserRole,
 ): boolean {
-  return allowedRoles.includes(userRole)
-}
 
-export function isAdmin(role: Role): boolean {
-  return role === ROLES.ADMIN
-}
 
-export function isVendor(role: Role): boolean {
-  return role === ROLES.VENDOR
-}
+  return (
+    ROLE_PRIORITY[currentRole]
+    >=
+    ROLE_PRIORITY[requiredRole]
+  );
 
-export function isProfessional(role: Role): boolean {
-  return role === ROLES.PROFESSIONAL
-}
-
-export function isCompany(role: Role): boolean {
-  return role === ROLES.COMPANY
 }
