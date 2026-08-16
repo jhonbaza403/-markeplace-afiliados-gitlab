@@ -6,6 +6,7 @@
 //
 // Supabase Auth
 // React Context API
+// Next.js 16
 // ==========================================================
 
 
@@ -26,7 +27,7 @@ import type {
 
 
 import {
-  supabase,
+  createClient,
 } from "@/lib/supabase/client";
 
 
@@ -38,11 +39,15 @@ import {
 
 interface AuthContextType {
 
+
   user: User | null;
+
 
   loading: boolean;
 
+
   logout: () => Promise<void>;
+
 
 }
 
@@ -57,6 +62,7 @@ const AuthContext =
   createContext<AuthContextType | undefined>(
     undefined,
   );
+
 
 
 
@@ -77,42 +83,83 @@ export function AuthProvider({
 }) {
 
 
-  const [
-    user,
-    setUser,
-  ] =
+  const [user,setUser] =
     useState<User | null>(null);
 
 
 
-  const [
-    loading,
-    setLoading,
-  ] =
-    useState(true);
+  const [loading,setLoading] =
+    useState<boolean>(true);
 
 
 
-
-  useEffect(() => {
-
-
-    async function loadSession() {
+  useEffect(()=>{
 
 
-      const {
-        data,
-      } =
-      await supabase.auth.getUser();
+    const supabase =
+      createClient();
 
 
 
-      setUser(
-        data.user ?? null,
-      );
+    let mounted = true;
 
 
-      setLoading(false);
+
+    async function loadSession(){
+
+
+      try {
+
+
+        const {
+          data,
+        } =
+        await supabase.auth.getUser();
+
+
+
+        if(mounted){
+
+          setUser(
+            data.user ?? null,
+          );
+
+        }
+
+
+      }
+
+
+      catch(error){
+
+
+        console.error(
+          "Error cargando usuario:",
+          error,
+        );
+
+
+        if(mounted){
+
+          setUser(null);
+
+        }
+
+
+      }
+
+
+      finally{
+
+
+        if(mounted){
+
+          setLoading(false);
+
+        }
+
+
+      }
 
 
     }
@@ -124,9 +171,10 @@ export function AuthProvider({
 
 
 
+
     const {
 
-      data: {
+      data:{
         subscription,
 
       },
@@ -139,16 +187,16 @@ export function AuthProvider({
 
         session,
 
-      ) => {
+      )=>{
 
 
-        setUser(
+        if(mounted){
 
-          session?.user
-          ??
-          null,
+          setUser(
+            session?.user ?? null,
+          );
 
-        );
+        }
 
 
       },
@@ -157,7 +205,12 @@ export function AuthProvider({
 
 
 
-    return () => {
+
+
+    return ()=>{
+
+
+      mounted=false;
 
 
       subscription.unsubscribe();
@@ -166,13 +219,20 @@ export function AuthProvider({
     };
 
 
-  }, []);
+  },[]);
 
 
 
 
 
-  async function logout() {
+
+
+  async function logout(){
+
+
+    const supabase =
+      createClient();
+
 
 
     await supabase.auth.signOut();
@@ -216,21 +276,21 @@ export function AuthProvider({
 
 
 
+
 // ==========================================================
 // HOOK
 // ==========================================================
 
-export function useAuth() {
+export function useAuth(){
 
 
   const context =
-    useContext(
-      AuthContext,
-    );
+    useContext(AuthContext);
 
 
 
-  if (!context) {
+  if(!context){
+
 
     throw new Error(
 
@@ -238,15 +298,12 @@ export function useAuth() {
 
     );
 
+
   }
 
 
 
   return context;
 
-}
-
-
-  return context;
 
 }
