@@ -16,7 +16,7 @@ const securityHeaders = [
   {
     key: "Permissions-Policy",
     value:
-      "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=()",
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   },
   {
     key: "Cross-Origin-Opener-Policy",
@@ -24,7 +24,7 @@ const securityHeaders = [
   },
   {
     key: "Cross-Origin-Resource-Policy",
-    value: "same-origin",
+    value: "same-site",
   },
   {
     key: "X-DNS-Prefetch-Control",
@@ -34,30 +34,61 @@ const securityHeaders = [
     key: "X-Permitted-Cross-Domain-Policies",
     value: "none",
   },
-  {
-    key: "X-Download-Options",
-    value: "noopen",
-  },
 ];
 
+
 const contentSecurityPolicy = `
-  default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval';
-  style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob: https:;
-  font-src 'self' data:;
-  connect-src 'self' https:;
-  frame-src 'self';
-  object-src 'none';
-  base-uri 'self';
-  form-action 'self';
-  frame-ancestors 'self';
-  upgrade-insecure-requests;
+default-src 'self';
+
+script-src 
+'self'
+'unsafe-inline'
+'unsafe-eval';
+
+style-src
+'self'
+'unsafe-inline';
+
+img-src
+'self'
+data:
+blob:
+https:;
+
+font-src
+'self'
+data:
+https:;
+
+connect-src
+'self'
+https://*.supabase.co
+wss://*.supabase.co
+https:;
+
+frame-src
+'self';
+
+object-src
+'none';
+
+base-uri
+'self';
+
+form-action
+'self';
+
+frame-ancestors
+'self';
+
+upgrade-insecure-requests;
 `
-  .replace(/\s{2,}/g, " ")
-  .trim();
+.replace(/\s{2,}/g, " ")
+.trim();
+
 
 const nextConfig: NextConfig = {
+
   reactStrictMode: true,
 
   poweredByHeader: false,
@@ -66,22 +97,40 @@ const nextConfig: NextConfig = {
 
   productionBrowserSourceMaps: false,
 
+
   experimental: {
+
     optimizePackageImports: [
       "@supabase/supabase-js",
       "@supabase/ssr",
+      "lucide-react",
     ],
+
   },
 
+
   images: {
-    formats: ["image/avif", "image/webp"],
+
+    formats: [
+      "image/avif",
+      "image/webp",
+    ],
+
 
     remotePatterns: [
+
       {
         protocol: "https",
-        hostname: "**",
+        hostname: "*.supabase.co",
       },
+
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+
     ],
+
 
     deviceSizes: [
       320,
@@ -95,6 +144,7 @@ const nextConfig: NextConfig = {
       1920,
     ],
 
+
     imageSizes: [
       16,
       32,
@@ -105,82 +155,129 @@ const nextConfig: NextConfig = {
       256,
       384,
     ],
+
   },
+
 
   async headers() {
+
     return [
+
       {
         source: "/(.*)",
+
         headers: [
+
           ...securityHeaders,
+
           {
-            key: "Content-Security-Policy",
-            value: contentSecurityPolicy,
+            key:
+              "Content-Security-Policy",
+
+            value:
+              contentSecurityPolicy,
           },
+
         ],
       },
 
+
       {
-        source: "/_next/static/(.*)",
+        source:
+          "/_next/static/(.*)",
+
         headers: [
+
           {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
+            key:
+              "Cache-Control",
+
+            value:
+              "public, max-age=31536000, immutable",
           },
+
         ],
       },
 
-      {
-        source: "/api/(.*)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "private, no-store, max-age=0",
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-        ],
-      },
 
       {
-        source: "/api/payments/webhook/(.*)",
+        source:
+          "/api/(.*)",
+
         headers: [
+
           {
-            key: "Cache-Control",
-            value: "no-store",
+            key:
+              "Cache-Control",
+
+            value:
+              "private, no-store",
           },
+
           {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
+            key:
+              "X-Content-Type-Options",
+
+            value:
+              "nosniff",
           },
+
         ],
+
       },
 
+
       {
-        source: "/admin/(.*)",
+        source:
+          "/api/payments/webhook/(.*)",
+
         headers: [
+
           {
-            key: "Cache-Control",
-            value: "private, no-store",
+            key:
+              "Cache-Control",
+
+            value:
+              "no-store",
           },
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
+
         ],
+
       },
+
+
+      {
+        source:
+          "/admin/(.*)",
+
+        headers: [
+
+          {
+            key:
+              "Cache-Control",
+
+            value:
+              "private, no-store",
+          },
+
+          {
+            key:
+              "X-Frame-Options",
+
+            value:
+              "DENY",
+          },
+
+        ],
+
+      },
+
+
     ];
+
   },
 
-  async redirects() {
-    return [];
-  },
 
-  async rewrites() {
-    return [];
-  },
 };
 
 export default nextConfig;
