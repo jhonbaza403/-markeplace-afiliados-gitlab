@@ -1,0 +1,68 @@
+name: Credi Marketplace Security
+
+
+on:
+
+
+  push:
+
+
+    branches:
+
+      - main
+
+
+
+  pull_request:
+
+
+
+jobs:
+
+
+  security:
+
+
+    name: Security Audit
+
+
+    runs-on: ubuntu-latest
+
+
+
+    steps:
+
+
+      - name: Checkout repository
+
+        uses: actions/checkout@v4
+
+
+
+      - name: Setup Node.js 24
+
+        uses: actions/setup-node@v4
+
+        with:
+
+          node-version-file: '.nvmrc'
+
+          cache: npm
+
+
+
+      - name: Install dependencies
+
+        run: npm ci
+
+
+
+      - name: NPM security audit
+
+        run: npm audit --audit-level=high
+
+
+
+      - name: Check dependency vulnerabilities
+
+        run: npm outdated || true
