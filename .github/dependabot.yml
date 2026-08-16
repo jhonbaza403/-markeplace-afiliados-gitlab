@@ -1,0 +1,95 @@
+# ============================================================
+# CREDI MARKETPLACE
+# Dependabot Configuration
+#
+# Next.js 16.3
+# React 19.2
+# Node.js 24
+# npm
+# ============================================================
+
+
+version: 2
+
+
+updates:
+
+
+  # ==========================================================
+  # NPM DEPENDENCIES
+  # ==========================================================
+
+  - package-ecosystem: "npm"
+
+    directory: "/"
+
+    schedule:
+
+      interval: "weekly"
+
+
+    open-pull-requests-limit: 10
+
+
+    labels:
+
+      - "dependencies"
+
+      - "security"
+
+
+    commit-message:
+
+      prefix: "deps"
+
+
+    groups:
+
+
+      next-react:
+
+        patterns:
+
+          - "next"
+
+          - "react"
+
+          - "react-dom"
+
+
+
+      testing:
+
+        patterns:
+
+          - "vitest"
+
+          - "@playwright/*"
+
+          - "@testing-library/*"
+
+
+
+      tooling:
+
+        patterns:
+
+          - "typescript"
+
+          - "eslint"
+
+          - "prettier"
+
+
+
+  # ==========================================================
+  # GITHUB ACTIONS
+  # ==========================================================
+
+  - package-ecosystem: "github-actions"
+
+    directory: "/"
+
+    schedule:
+
+      interval: "monthly"
