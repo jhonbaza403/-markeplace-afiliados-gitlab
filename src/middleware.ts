@@ -4,15 +4,16 @@
 //
 // Credi Marketplace
 //
-// Middleware global de autenticación
+// Middleware de autenticación y autorización
 //
 // Next.js 16
 // Supabase SSR
 //
-// Responsabilidades:
-// - Renovar sesión.
+// Funciones:
+// - Renovar sesión Supabase.
 // - Proteger dashboards.
-// - Controlar acceso por roles.
+// - Validar roles.
+// - Redireccionar usuarios.
 // ==========================================================
 
 
@@ -29,9 +30,21 @@ import {
 
 
 
+// ==========================================================
+// TIPOS
+// ==========================================================
+
+
+type UserRole =
+  | "admin"
+  | "vendor"
+  | "customer";
+
+
+
 
 // ==========================================================
-// ACTUALIZAR SESIÓN SUPABASE
+// ACTUALIZAR SESIÓN
 // ==========================================================
 
 
@@ -40,114 +53,168 @@ async function updateSession(
 ) {
 
 
-let response =
-NextResponse.next({
-  request,
-});
+  let response =
+    NextResponse.next({
+      request,
+    });
 
 
 
-
-const supabase =
-createServerClient(
-
-
-process.env
-.NEXT_PUBLIC_SUPABASE_URL!,
+  const supabase =
+    createServerClient(
 
 
-process.env
-.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env
+        .NEXT_PUBLIC_SUPABASE_URL!,
 
 
-{
+      process.env
+        .NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 
 
-cookies:{
+      {
 
 
-getAll(){
+        cookies:{
 
 
-return request.cookies.getAll();
+          getAll(){
 
+            return request.cookies.getAll();
 
-},
+          },
 
 
 
-setAll(cookiesToSet){
+          setAll(
+            cookiesToSet,
+          ){
 
 
-cookiesToSet.forEach(
-({
-name,
-value,
-options,
-})=>{
+            cookiesToSet.forEach(
+              ({
+                name,
+                value,
+                options,
+              })=>{
 
 
-request.cookies.set(
-name,
-value,
-);
+                request.cookies.set(
+                  name,
+                  value,
+                );
 
 
-response.cookies.set(
-name,
-value,
-options,
-);
+                response.cookies.set(
+                  name,
+                  value,
+                  options,
+                );
 
 
-},
-
-);
-
-
-},
+              },
+            );
 
 
-},
+          },
 
 
-},
-
-);
+        },
 
 
+      },
 
-
-
-
-const {
-
-data:{
-user,
-
-},
-
-}
-
-=
-await supabase.auth.getUser();
+    );
 
 
 
 
 
-return {
+  const {
+    data:{
+      user,
+    },
 
-supabase,
+  } =
+    await supabase.auth.getUser();
 
-user,
 
-response,
 
-};
+
+
+  return {
+
+    supabase,
+
+    user,
+
+    response,
+
+  };
 
 
 }
+
+
+
+
+
+
+
+// ==========================================================
+// OBTENER ROL
+// ==========================================================
+
+
+async function getUserRole(
+  supabase:any,
+  userId:string,
+):Promise<UserRole|null>{
+
+
+  const {
+    data,
+    error,
+
+  } =
+    await supabase
+
+      .from("profiles")
+
+      .select(
+        "role",
+      )
+
+      .eq(
+        "id",
+        userId,
+      )
+
+      .maybeSingle();
+
+
+
+
+  if(error){
+
+    console.error(
+      "Error obteniendo rol:",
+      error,
+    );
+
+
+    return null;
+
+  }
+
+
+
+
+  return data?.role ?? null;
+
+
+}
+
 
 
 
@@ -161,107 +228,232 @@ response,
 
 
 export async function middleware(
-request: NextRequest,
+  request: NextRequest,
 ){
 
 
 
-const {
+  const {
 
-user,
+    supabase,
 
-response,
+    user,
+
+    response,
+
+  } =
+    await updateSession(
+      request,
+    );
+
+
+
+
+
+  const pathname =
+    request.nextUrl.pathname;
+
+
+
+
+
+
+
+  // ========================================================
+  // RUTAS PROTEGIDAS
+  // ========================================================
+
+
+  const isAdminRoute =
+    pathname.startsWith(
+      "/dashboard/admin",
+    );
+
+
+  const isVendorRoute =
+    pathname.startsWith(
+      "/dashboard/vendor",
+    );
+
+
+  const isCustomerRoute =
+    pathname.startsWith(
+      "/dashboard/customer",
+    );
+
+
+
+
+  const requiresAuth =
+    isAdminRoute ||
+    isVendorRoute ||
+    isCustomerRoute;
+
+
+
+
+
+
+
+  // ========================================================
+  // SIN LOGIN
+  // ========================================================
+
+
+  if(
+    requiresAuth
+    &&
+    !user
+  ){
+
+
+    const url =
+      request.nextUrl.clone();
+
+
+    url.pathname =
+      "/login";
+
+
+    return NextResponse.redirect(
+      url,
+    );
+
+
+  }
+
+
+
+
+
+
+
+
+  // ========================================================
+  // CONTROL DE ROLES
+  // ========================================================
+
+
+  if(
+    requiresAuth
+    &&
+    user
+  ){
+
+
+    const role =
+      await getUserRole(
+        supabase,
+        user.id,
+      );
+
+
+
+
+
+    // ------------------------------------------------------
+    // ADMIN
+    // ------------------------------------------------------
+
+
+    if(
+      isAdminRoute
+      &&
+      role !== "admin"
+    ){
+
+
+      const url =
+        request.nextUrl.clone();
+
+
+      url.pathname =
+        "/dashboard";
+
+
+      return NextResponse.redirect(
+        url,
+      );
+
+
+    }
+
+
+
+
+
+    // ------------------------------------------------------
+    // VENDOR
+    // ------------------------------------------------------
+
+
+    if(
+      isVendorRoute
+      &&
+      role !== "vendor"
+    ){
+
+
+      const url =
+        request.nextUrl.clone();
+
+
+      url.pathname =
+        "/dashboard";
+
+
+      return NextResponse.redirect(
+        url,
+      );
+
+
+    }
+
+
+
+
+
+    // ------------------------------------------------------
+    // CUSTOMER
+    // ------------------------------------------------------
+
+
+    if(
+      isCustomerRoute
+      &&
+      role !== "customer"
+    ){
+
+
+      const url =
+        request.nextUrl.clone();
+
+
+      url.pathname =
+        "/dashboard";
+
+
+      return NextResponse.redirect(
+        url,
+      );
+
+
+    }
+
+
+
+  }
+
+
+
+
+
+
+  return response;
+
 
 }
 
-=
-await updateSession(
-request,
-);
-
-
-
-
-const pathname =
-request.nextUrl.pathname;
-
-
-
-
-
-
-// ========================================================
-// RUTAS PROTEGIDAS
-// ========================================================
-
-
-const protectedRoutes = [
-
-"/dashboard/admin",
-
-"/dashboard/vendor",
-
-"/dashboard/customer",
-
-];
-
-
-
-
-
-const requiresAuth =
-protectedRoutes.some(
-(route)=>
-pathname.startsWith(route),
-);
-
-
-
-
-
-
-// ========================================================
-// SIN SESIÓN
-// ========================================================
-
-
-if(
-requiresAuth
-&&
-!user
-){
-
-
-const url =
-request.nextUrl.clone();
-
-
-url.pathname =
-"/login";
-
-
-return NextResponse.redirect(
-url,
-);
-
-
-}
-
-
-
-
-
-
-
-// ========================================================
-// CONTINUAR
-// ========================================================
-
-
-return response;
-
-
-}
 
 
 
@@ -277,24 +469,16 @@ return response;
 export const config = {
 
 
-matcher:[
+  matcher:[
 
 
-/*
- Protección de dashboard.
- Evita ejecutar middleware
- en archivos estáticos.
-*/
+    "/dashboard/:path*",
 
 
-"/dashboard/:path*",
+    "/login",
 
 
-
-"/login",
-
-
-],
+  ],
 
 
 };
