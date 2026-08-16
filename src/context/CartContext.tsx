@@ -1,23 +1,48 @@
 "use client";
 
+import {
+createContext,
+useContext,
+useEffect,
+useMemo,
+useState,
+type ReactNode,
+} from "react";
+
+import { z } from "zod";
+
+
+
 // ==========================================================
-// ARCHIVO: src/context/CartContext.tsx
-// Credi Marketplace
-//
-// Contexto global del carrito
-//
-// Next.js App Router
-// TypeScript
+// VALIDACIÓN
 // ==========================================================
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+const MAX_CART_QUANTITY = 99;
+
+
+const CartProductSchema = z.object({
+
+id:z.string(),
+
+name:z.string(),
+
+slug:z.string().optional(),
+
+image:z.string().optional(),
+
+price:z.number().nonnegative(),
+
+currency:z.string().optional(),
+
+sellerId:z.string().optional(),
+
+quantity:z.number()
+.int()
+.min(1)
+.max(MAX_CART_QUANTITY),
+
+});
+
 
 
 // ==========================================================
@@ -26,437 +51,467 @@ import {
 
 export interface CartProduct {
 
-  id: string;
+id:string;
 
-  name: string;
+name:string;
 
-  slug?: string;
+slug?:string;
 
-  image?: string;
+image?:string;
 
-  price: number;
+price:number;
 
-  currency?: string;
+currency?:string;
 
-  sellerId?: string;
+sellerId?:string;
 
-  quantity: number;
-
-}
-
-
-export interface CartContextValue {
-
-  items: CartProduct[];
-
-  totalItems: number;
-
-  subtotal: number;
-
-
-  addItem(
-    product: Omit<CartProduct, "quantity">,
-    quantity?: number,
-  ): void;
-
-
-  removeItem(
-    productId: string,
-  ): void;
-
-
-  updateQuantity(
-    productId: string,
-    quantity: number,
-  ): void;
-
-
-  clearCart(): void;
-
-
-  hasItem(
-    productId: string,
-  ): boolean;
+quantity:number;
 
 }
 
 
-// ==========================================================
-// CONSTANTES
-// ==========================================================
+
+interface CartContextValue {
+
+
+items:CartProduct[];
+
+
+totalItems:number;
+
+
+subtotal:number;
+
+
+addItem(
+product:Omit<CartProduct,"quantity">,
+quantity?:number
+):void;
+
+
+removeItem(id:string):void;
+
+
+updateQuantity(
+id:string,
+quantity:number
+):void;
+
+
+clearCart():void;
+
+
+hasItem(id:string):boolean;
+
+
+}
+
+
+
 
 const CART_STORAGE_KEY =
-  "credi-marketplace-cart";
+"credi-marketplace-cart";
 
 
-// ==========================================================
-// CONTEXT
-// ==========================================================
 
 const CartContext =
-  createContext<
-    CartContextValue | undefined
-  >(undefined);
+createContext<CartContextValue | undefined>(
+undefined
+);
 
 
-// ==========================================================
-// PROVIDER
-// ==========================================================
+
+
 
 export function CartProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
 
+children,
 
-  const [
-    items,
-    setItems,
-  ] =
-    useState<CartProduct[]>([]);
+}:{
 
+children:ReactNode;
 
+}){
 
-  // --------------------------------------------------------
-  // Cargar carrito
-  // --------------------------------------------------------
 
-  useEffect(() => {
+const [items,setItems]=
+useState<CartProduct[]>([]);
 
-    try {
 
-      const stored =
-        localStorage.getItem(
-          CART_STORAGE_KEY,
-        );
 
 
-      if (stored) {
+useEffect(()=>{
 
-        setItems(
-          JSON.parse(stored),
-        );
 
-      }
+try{
 
-    } catch {
 
-      setItems([]);
+const stored =
+localStorage.getItem(
+CART_STORAGE_KEY
+);
 
-    }
 
-  }, []);
+if(!stored)return;
 
 
 
+const parsed =
+JSON.parse(stored);
 
-  // --------------------------------------------------------
-  // Guardar carrito
-  // --------------------------------------------------------
 
-  useEffect(() => {
 
-    try {
+const result =
+z.array(CartProductSchema)
+.safeParse(parsed);
 
-      localStorage.setItem(
-        CART_STORAGE_KEY,
-        JSON.stringify(items),
-      );
 
-    } catch {
 
-      // Evita romper la aplicación
-      // si localStorage está bloqueado
+if(result.success){
 
-    }
-
-  }, [items]);
-
-
-
-
-
-  // --------------------------------------------------------
-  // Agregar producto
-  // --------------------------------------------------------
-
-  function addItem(
-    product:
-      Omit<CartProduct, "quantity">,
-    quantity = 1,
-  ) {
-
-
-    setItems(
-      current => {
-
-
-        const exists =
-          current.find(
-            item =>
-              item.id === product.id,
-          );
-
-
-
-        if (exists) {
-
-          return current.map(
-            item =>
-              item.id === product.id
-
-                ? {
-                    ...item,
-
-                    quantity:
-                      item.quantity +
-                      quantity,
-                  }
-
-                : item,
-          );
-
-        }
-
-
-
-        return [
-
-          ...current,
-
-          {
-            ...product,
-
-            quantity,
-
-          },
-
-        ];
-
-      },
-    );
-
-  }
-
-
-
-
-
-  // --------------------------------------------------------
-  // Eliminar
-  // --------------------------------------------------------
-
-  function removeItem(
-    productId: string,
-  ) {
-
-    setItems(
-      current =>
-        current.filter(
-          item =>
-            item.id !== productId,
-        ),
-    );
-
-  }
-
-
-
-
-
-  // --------------------------------------------------------
-  // Actualizar cantidad
-  // --------------------------------------------------------
-
-  function updateQuantity(
-    productId: string,
-    quantity: number,
-  ) {
-
-
-    if (quantity <= 0) {
-
-      removeItem(productId);
-
-      return;
-
-    }
-
-
-
-    setItems(
-      current =>
-        current.map(
-          item =>
-
-            item.id === productId
-
-              ? {
-                  ...item,
-                  quantity,
-                }
-
-              : item,
-        ),
-    );
-
-  }
-
-
-
-
-
-  // --------------------------------------------------------
-  // Vaciar carrito
-  // --------------------------------------------------------
-
-  function clearCart() {
-
-    setItems([]);
-
-  }
-
-
-
-
-
-  // --------------------------------------------------------
-  // Existe producto
-  // --------------------------------------------------------
-
-  function hasItem(
-    productId: string,
-  ) {
-
-    return items.some(
-      item =>
-        item.id === productId,
-    );
-
-  }
-
-
-
-
-
-  // --------------------------------------------------------
-  // Totales
-  // --------------------------------------------------------
-
-  const totalItems =
-    useMemo(
-      () =>
-        items.reduce(
-          (
-            total,
-            item,
-          ) =>
-            total +
-            item.quantity,
-
-          0,
-        ),
-
-      [items],
-    );
-
-
-
-  const subtotal =
-    useMemo(
-      () =>
-        items.reduce(
-          (
-            total,
-            item,
-          ) =>
-            total +
-            (
-              item.price *
-              item.quantity
-            ),
-
-          0,
-        ),
-
-      [items],
-    );
-
-
-
-
-
-  const value =
-    useMemo<CartContextValue>(
-      () => ({
-
-        items,
-
-        totalItems,
-
-        subtotal,
-
-
-        addItem,
-
-        removeItem,
-
-        updateQuantity,
-
-        clearCart,
-
-        hasItem,
-
-      }),
-
-      [
-        items,
-        totalItems,
-        subtotal,
-      ],
-    );
-
-
-
-
-
-  return (
-
-    <CartContext.Provider
-      value={value}
-    >
-
-      {children}
-
-    </CartContext.Provider>
-
-  );
+setItems(result.data);
 
 }
 
 
-// ==========================================================
-// HOOK
-// ==========================================================
+}
 
-export function useCart() {
-
-  const context =
-    useContext(
-      CartContext,
-    );
+catch{
 
 
-  if (!context) {
+setItems([]);
 
-    throw new Error(
-      "useCart debe utilizarse dentro de CartProvider",
-    );
-
-  }
+}
 
 
-  return context;
+},[]);
+
+
+
+
+
+
+useEffect(()=>{
+
+
+try{
+
+
+localStorage.setItem(
+
+CART_STORAGE_KEY,
+
+JSON.stringify(items)
+
+);
+
+
+}
+
+catch{
+
+
+}
+
+
+},[items]);
+
+
+
+
+
+
+function addItem(
+
+product:Omit<CartProduct,"quantity">,
+
+quantity=1
+
+){
+
+
+const safeQuantity =
+Math.min(
+quantity,
+MAX_CART_QUANTITY
+);
+
+
+
+setItems(current=>{
+
+
+const exists =
+current.find(
+item=>item.id===product.id
+);
+
+
+
+if(exists){
+
+
+return current.map(item=>
+
+
+item.id===product.id
+
+?
+
+{
+
+...item,
+
+quantity:
+Math.min(
+item.quantity + safeQuantity,
+MAX_CART_QUANTITY
+)
+
+}
+
+:
+
+item
+
+);
+
+
+}
+
+
+
+return [
+
+...current,
+
+{
+
+...product,
+
+quantity:safeQuantity
+
+}
+
+];
+
+
+});
+
+
+}
+
+
+
+
+
+
+function removeItem(id:string){
+
+
+setItems(
+current=>
+current.filter(
+item=>item.id!==id
+)
+);
+
+
+}
+
+
+
+
+
+
+function updateQuantity(
+
+id:string,
+
+quantity:number
+
+){
+
+
+if(quantity<=0){
+
+removeItem(id);
+
+return;
+
+}
+
+
+
+setItems(current=>
+
+current.map(item=>
+
+item.id===id
+
+?
+
+{
+
+...item,
+
+quantity:
+Math.min(
+quantity,
+MAX_CART_QUANTITY
+)
+
+}
+
+:
+
+item
+
+)
+
+);
+
+
+}
+
+
+
+
+
+
+function clearCart(){
+
+setItems([]);
+
+}
+
+
+
+
+
+function hasItem(id:string){
+
+return items.some(
+item=>item.id===id
+);
+
+}
+
+
+
+
+
+const totalItems =
+useMemo(()=>
+
+
+items.reduce(
+
+(total,item)=>
+
+total+item.quantity,
+
+0
+
+),
+
+[items]);
+
+
+
+
+
+const subtotal =
+useMemo(()=>
+
+
+items.reduce(
+
+(total,item)=>
+
+total+(item.price*item.quantity),
+
+0
+
+),
+
+[items]);
+
+
+
+
+
+
+
+const value =
+useMemo(()=>({
+
+items,
+
+totalItems,
+
+subtotal,
+
+addItem,
+
+removeItem,
+
+updateQuantity,
+
+clearCart,
+
+hasItem,
+
+
+}),
+
+[
+items,
+totalItems,
+subtotal
+]
+
+);
+
+
+
+
+
+return (
+
+<CartContext.Provider value={value}>
+
+{children}
+
+</CartContext.Provider>
+
+);
+
+
+}
+
+
+
+
+
+export function useCart(){
+
+
+const context =
+useContext(CartContext);
+
+
+
+if(!context){
+
+throw new Error(
+"useCart debe utilizarse dentro de CartProvider"
+);
+
+}
+
+
+return context;
+
 
 }
