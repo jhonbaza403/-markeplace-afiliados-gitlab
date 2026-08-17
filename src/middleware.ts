@@ -1,22 +1,3 @@
-// ==========================================================
-// ARCHIVO:
-// src/middleware.ts
-//
-// Credi Marketplace
-//
-// Middleware de autenticación y autorización
-//
-// Next.js 16
-// Supabase SSR
-//
-// Funciones:
-// - Renovar sesión Supabase.
-// - Proteger dashboards.
-// - Validar roles.
-// - Redireccionar usuarios.
-// ==========================================================
-
-
 import {
   NextResponse,
   type NextRequest,
